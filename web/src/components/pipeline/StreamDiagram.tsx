@@ -1,6 +1,9 @@
+import { useEffect, useRef, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { Cloud, Cpu, Globe } from 'lucide-react'
 import { formatPercent } from '@/lib/formatters'
+import { EASE_OUT } from '@/lib/motion'
 
 interface StreamDiagramProps {
   mode: string
@@ -18,13 +21,29 @@ export function StreamDiagram({ mode, progress, bufferPct, active }: StreamDiagr
   const pure = mode === 'pure_stream'
   const safeProgress = Math.max(0, Math.min(100, progress))
 
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [trackW, setTrackW] = useState(0)
+  const reduce = useReducedMotion()
+
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+    const measure = () => setTrackW(el.clientWidth)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  const dotX = (trackW * safeProgress) / 100
+
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-black/20 px-4 py-3">
       <div className="grid-lines pointer-events-none absolute inset-0 opacity-30" />
       <div className="relative flex items-center justify-between gap-2">
         <Node icon={<Globe className="h-4 w-4" />} label={t('pipeline.source')} tone="sky" />
 
-        <div className="relative mx-1 flex-1">
+        <div ref={trackRef} className="relative mx-1 flex-1">
           <svg viewBox="0 0 100 8" preserveAspectRatio="none" className="h-2 w-full">
             <line x1="0" y1="4" x2="100" y2="4" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
             {active ? (
@@ -40,9 +59,11 @@ export function StreamDiagram({ mode, progress, bufferPct, active }: StreamDiagr
             ) : null}
           </svg>
           {active ? (
-            <div
-              className="absolute top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-sky-300 shadow-[0_0_8px_2px_rgba(56,189,248,0.6)] transition-[left] duration-500"
-              style={{ left: `${safeProgress}%` }}
+            <motion.div
+              initial={{ transform: 'translateX(0px) translateY(-50%)' }}
+              animate={{ transform: `translateX(${dotX}px) translateY(-50%)` }}
+              transition={reduce ? { duration: 0 } : { duration: 0.2, ease: EASE_OUT }}
+              className="absolute top-1/2 h-1.5 w-1.5 rounded-full bg-sky-300 shadow-[0_0_8px_2px_rgba(56,189,248,0.6)]"
             />
           ) : null}
         </div>

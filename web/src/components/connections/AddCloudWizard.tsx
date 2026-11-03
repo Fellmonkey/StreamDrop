@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ArrowLeft, ArrowRight, Check, Cloud, ExternalLink, Loader2, ShieldCheck } from 'lucide-react'
+import { EASE_OUT } from '@/lib/motion'
 import type { OAuthProvider } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { useOAuth } from '@/hooks/useOAuth'
@@ -54,6 +56,13 @@ export function AddCloudWizard({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
+  const [dir, setDir] = useState(1)
+
+  const goTo = (next: number) => {
+    setDir(next > step ? 1 : -1)
+    setStep(next)
+  }
+
   const [providerId, setProviderId] = useState('')
   const [name, setName] = useState('')
   const [user, setUser] = useState('')
@@ -183,15 +192,15 @@ export function AddCloudWizard({
 
   const next = () => {
     if (step === 1 && access !== 'oauth') {
-      setStep(2)
+      goTo(2)
       verify.mutate()
       return
     }
     if (step === 1 && access === 'oauth') {
-      setStep(2)
+      goTo(2)
       return
     }
-    setStep((s) => Math.min(3, s + 1))
+    goTo(Math.min(3, step + 1))
   }
 
   return (
@@ -226,6 +235,15 @@ export function AddCloudWizard({
             ))}
           </div>
 
+          <AnimatePresence mode="wait" initial={false} custom={dir}>
+            <motion.div
+              key={step}
+              custom={dir}
+              initial={{ opacity: 0, x: 12 * dir }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 * dir }}
+              transition={{ duration: 0.15, ease: EASE_OUT }}
+            >
           {step === 0 ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PROVIDERS.map((provider) => (
@@ -444,12 +462,14 @@ export function AddCloudWizard({
               </p>
             </div>
           ) : null}
+            </motion.div>
+          </AnimatePresence>
 
           <div className="flex items-center justify-between gap-2 border-t border-white/[0.07] pt-3">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => (step === 0 ? onOpenChange(false) : setStep((s) => s - 1))}
+              onClick={() => (step === 0 ? onOpenChange(false) : goTo(step - 1))}
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               {step === 0 ? t('common.cancel') : t('common.back')}

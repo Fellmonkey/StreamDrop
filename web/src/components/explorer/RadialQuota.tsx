@@ -29,7 +29,7 @@ export function RadialQuota({ quota, size = 96 }: { quota?: Quota | null; size?:
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            className="transition-[stroke-dashoffset] duration-500"
+            className="transition-[stroke-dashoffset] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

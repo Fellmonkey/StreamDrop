@@ -221,6 +221,10 @@ select {
   .beacon-ring {
     display: none;
   }
+  /* Collapsible: при reduced-motion без плавного схлопывания, но состояние видно. */
+  .sd-collapse {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .numeric {

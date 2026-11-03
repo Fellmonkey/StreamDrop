@@ -282,7 +282,22 @@ export function Tooltip({ children, content }: { children: React.ReactNode; cont
 
 export const Collapsible = CollapsiblePrimitive.Root
 export const CollapsibleTrigger = CollapsiblePrimitive.Trigger
-export const CollapsibleContent = CollapsiblePrimitive.Content
+export const CollapsibleContent = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof CollapsiblePrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <CollapsiblePrimitive.Content
+    ref={ref}
+    className={cn(
+      'sd-collapse grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.77,0,0.175,1)] data-[state=closed]:grid-rows-[0fr] data-[state=open]:grid-rows-[1fr]',
+      className,
+    )}
+    {...props}
+  >
+    <div className="min-h-0 overflow-hidden">{props.children}</div>
+  </CollapsiblePrimitive.Content>
+))
+CollapsibleContent.displayName = 'CollapsibleContent'
 
 /* -------------------------------------------------------------------------- */
 /* Dialog / Sheet                                                              */

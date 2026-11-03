@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Cloud, Droplet, Link2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button, Dialog, DialogContent, Progress } from '@/components/ui/primitives'
 import { cn } from '@/lib/utils'
+import { EASE_OUT } from '@/lib/motion'
 
 /** FirstRunWizard is the three-step onboarding, skippable at any point. */
 export function FirstRunWizard({
@@ -19,6 +21,15 @@ export function FirstRunWizard({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [step, setStep] = useState(0)
+
+  const prevStep = useRef(0)
+  const [dir, setDir] = useState(1)
+
+  const changeStep = (next: number) => {
+    setDir(next > step ? 1 : -1)
+    prevStep.current = next
+    setStep(next)
+  }
 
   const complete = useMutation({
     mutationFn: () => api.updateSettings({ onboarded: true }),
@@ -57,13 +68,24 @@ export function FirstRunWizard({
             ))}
           </div>
 
-          <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
-              <Icon className="h-5 w-5" />
-            </div>
-            <h3 className="mt-3 text-sm font-semibold text-slate-100">{current.title}</h3>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{current.body}</p>
-          </div>
+          <AnimatePresence mode="wait" initial={false} custom={dir}>
+            <motion.div
+              key={step}
+              custom={dir}
+              initial={{ opacity: 0, x: 12 * dir }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -12 * dir }}
+              transition={{ duration: 0.15, ease: EASE_OUT }}
+            >
+              <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-3 text-sm font-semibold text-slate-100">{current.title}</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-400">{current.body}</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Button variant="ghost" size="sm" onClick={finish}>
@@ -71,7 +93,7 @@ export function FirstRunWizard({
             </Button>
             <div className="flex gap-2">
               {step > 0 ? (
-                <Button variant="secondary" size="sm" onClick={() => setStep((s) => s - 1)}>
+                <Button variant="secondary" size="sm" onClick={() => changeStep(step - 1)}>
                   {t('common.back')}
                 </Button>
               ) : null}
@@ -81,14 +103,14 @@ export function FirstRunWizard({
                   size="sm"
                   onClick={() => {
                     onOpenConnections()
-                    setStep(1)
+                    changeStep(1)
                   }}
                 >
                   {t('onboarding.openConnections')}
                 </Button>
               ) : null}
               {step < steps.length - 1 ? (
-                <Button size="sm" variant="primary" onClick={() => setStep((s) => s + 1)}>
+                <Button size="sm" variant="primary" onClick={() => changeStep(step + 1)}>
                   {t('common.next')}
                 </Button>
               ) : (
