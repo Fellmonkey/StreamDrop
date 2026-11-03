@@ -11,7 +11,7 @@ test.describe('Pre-flight inspection', () => {
     await openApp(page, env)
     const input = page.getByPlaceholder('https://releases.ubuntu.com/24.04/ubuntu-24.04-live-server-amd64.iso')
     await input.fill(isoUrl(env))
-    await expect(page.getByText('ubuntu-24.04-live-server.iso')).toBeVisible({ timeout: 25_000 })
+    await expect(page.getByText('ubuntu-24.04-live-server.iso').first()).toBeVisible({ timeout: 25_000 })
     await expect(page.getByText('Range')).toBeVisible()
 
     await page.getByLabel('Изменить имя').click()

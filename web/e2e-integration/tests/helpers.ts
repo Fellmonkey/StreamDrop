@@ -82,3 +82,53 @@ export async function cloudReady(env: { base: string; user: string; pass: string
     return false
   }
 }
+
+/**
+ * findRclone resolves the local rclone binary used by the app.
+ */
+function findRclone(): string | null {
+  const candidates = [
+    process.env.RCLONE_BIN,
+    process.env.LOCALAPPDATA
+      ? `${process.env.LOCALAPPDATA}\\StreamDrop\\deps\\rclone\\v1.68.2\\rclone.exe`
+      : '',
+    'C:\\Users\\nikita\\AppData\\Local\\StreamDrop\\deps\\rclone\\v1.68.2\\rclone.exe',
+  ].filter(Boolean)
+  for (const c of candidates) {
+    try {
+      if (require('node:fs').existsSync(c)) return c
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
+}
+
+/**
+ * removeCloudFolders deletes test-created folders from the cloud via the
+ * rclone CLI (the app intentionally exposes no folder-delete API). Folders
+ * must be empty, as they are after the explorer suite's own checks.
+ */
+export function removeCloudFolders(
+  env: { user: string; pass: string; url: string },
+  folders: string[],
+): void {
+  const rclone = findRclone()
+  if (!rclone || folders.length === 0) return
+  const fs = require('node:fs')
+  const os = require('node:os')
+  const path = require('node:path')
+  const cp = require('node:child_process')
+
+  const cfg = path.join(os.tmpdir(), `sd-clean-${Date.now()}.conf`)
+  const create = cp.spawnSync(rclone, ['config', 'create', '--config', cfg, 'probe', 'webdav', 'url=' + env.url, 'vendor=other', 'user=' + env.user, 'pass=' + env.pass], { encoding: 'utf8' })
+  if (create.status !== 0) return
+  for (const folder of folders) {
+    cp.spawnSync(rclone, ['rmdir', '--config', cfg, `probe:/${folder}`], { encoding: 'utf8' })
+  }
+  try {
+    fs.rmSync(cfg, { force: true })
+  } catch {
+    /* ignore */
+  }
+}

@@ -354,12 +354,16 @@
     "dataDir": "Data directory",
     "logs": "Journal",
     "saved": "Settings saved",
+    "licenses": "Licenses",
+    "licensesNote": "Third-party components used by StreamDrop:",
     "restartHint": "Some changes apply to new tasks only",
     "updateNotes": "What's new"
   },
   "onboarding": {
     "title": "Welcome to StreamDrop",
     "subtitle": "Files travel from the network into the cloud through RAM — no disk involved",
+    "step0Title": "Install components",
+    "step0Body": "Transfers need external utilities. Install rclone — without it streaming is impossible.",
     "step1Title": "Connect a cloud",
     "step1Body": "Add Mail.ru, Yandex.Disk, Google Drive or another storage in the connections panel.",
     "step2Title": "Paste a link",

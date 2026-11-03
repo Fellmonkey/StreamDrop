@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { loadEnv } from '../env.mjs'
 import { ensureRemote } from '../api'
-import { cloudReady, makeApi, openApp } from './helpers'
+import { cloudReady, makeApi, openApp, removeCloudFolders } from './helpers'
 
 const env = loadEnv()
 
@@ -66,5 +66,8 @@ test.describe('Cloud Explorer (real Mail.ru)', () => {
     await dialog.getByText(folder, { exact: true }).click()
     await dialog.getByRole('button', { name: 'Выбрать эту папку' }).click()
     await expect(page.getByPlaceholder('/ISO/Linux')).toHaveValue(`/${folder}`)
+
+    // do not leave test folders in the user's cloud
+    removeCloudFolders(env, [folder, `${folder}-inline`])
   })
 })

@@ -6,11 +6,12 @@ import "context"
 
 // Callbacks are the tray menu actions.
 type Callbacks struct {
-	URL      string
-	OnOpen   func()
-	OnPause  func()
-	OnResume func()
-	OnQuit   func()
+	URL          string
+	OnOpen       func() // open the desktop app window
+	OnOpenBrowser func() // open the UI in the default browser
+	OnPause      func()
+	OnResume     func()
+	OnQuit       func()
 }
 
 // Start runs the tray if the platform supports it. It returns immediately; the

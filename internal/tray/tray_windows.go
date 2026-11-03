@@ -31,7 +31,8 @@ func start(ctx context.Context, cb Callbacks) {
 			systray.SetTitle("StreamDrop")
 			systray.SetTooltip("StreamDrop — stream to cloud")
 
-			open := systray.AddMenuItem("Open StreamDrop", "Open the web interface")
+			open := systray.AddMenuItem("Open StreamDrop", "Open the desktop app window")
+			openBrowser := systray.AddMenuItem("Open in browser", "Open the web interface in your default browser")
 			pause := systray.AddMenuItem("Pause queue", "Pause active transfers")
 			resume := systray.AddMenuItem("Resume queue", "Resume the transfer queue")
 			systray.AddSeparator()
@@ -40,6 +41,11 @@ func start(ctx context.Context, cb Callbacks) {
 			open.Click(func() {
 				if cb.OnOpen != nil {
 					cb.OnOpen()
+				}
+			})
+			openBrowser.Click(func() {
+				if cb.OnOpenBrowser != nil {
+					cb.OnOpenBrowser()
 				}
 			})
 			pause.Click(func() {

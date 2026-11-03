@@ -39,7 +39,7 @@ type Component struct {
 // Version pins. They are updated together with the checksums.
 const (
 	RcloneVersion = "v1.68.2"
-	YtDlpVersion  = "2025.09.26"
+	YtDlpVersion  = "2026.10.26"
 	// curl 8.12.1's Windows build is no longer published; 8.23.0 is the
 	// current build with a stable URL and pinned checksum.
 	CurlVersion = "8.23.0"
@@ -77,10 +77,11 @@ var Catalog = []Component{
 		License:    "Unlicense",
 		SourceURL:  "https://github.com/yt-dlp/yt-dlp/releases",
 		BinaryName: "yt-dlp{ext}",
-		SizeBytes:  17 * 1024 * 1024,
+		SizeBytes:  23 * 1024 * 1024,
 		Platforms:  []string{"windows/amd64", "windows/arm64", "linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64"},
 		BinarySHA256ByPlatform: map[string]string{
-			"windows/amd64": "f930cb6bef322cb692fb9e778ee52952619e75f07f2b063d554ff2100cebf7d9",
+			"windows/amd64": "f5389d3698ecde4ef06f4e6b1ce0294fe9ac1396228c8990b8d3416d6d177a7d",
+			"linux/amd64":   "e51e69e89489f199530f13d32a4342da3ddb2cf34842f364603a066db05afbf3",
 		},
 	},
 	{

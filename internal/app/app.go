@@ -242,15 +242,16 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 
 	log.Info("StreamDrop listening on %s", url)
 	if cfg.OpenBrowser {
-		openBrowser(url)
+		openAppWindow(url)
 	}
 	if !cfg.NoTray {
 		tray.Start(ctx, tray.Callbacks{
-			URL:      url,
-			OnOpen:   func() { openBrowser(url) },
-			OnPause:  func() { transfers.PauseQueue() },
-			OnResume: func() { transfers.ResumeQueue() },
-			OnQuit:   func() { cancel() },
+			URL:          url,
+			OnOpen:       func() { openAppWindow(url) },
+			OnOpenBrowser: func() { openBrowser(url) },
+			OnPause:      func() { transfers.PauseQueue() },
+			OnResume:     func() { transfers.ResumeQueue() },
+			OnQuit:       func() { cancel() },
 		})
 	}
 
@@ -370,6 +371,36 @@ func openBrowser(url string) {
 		cmd = exec.Command("xdg-open", url)
 	}
 	_ = cmd.Start()
+}
+
+// openAppWindow opens the UI in a Chromium-based browser in app mode (a
+// desktop-app window without tabs/chrome). It falls back to the default
+// browser when neither Edge nor Chrome is installed.
+func openAppWindow(url string) {
+	if runtime.GOOS == "windows" {
+		for _, bin := range windowsBrowserBinaries() {
+			if _, err := os.Stat(bin); err == nil {
+				_ = exec.Command(bin, "--app="+url).Start()
+				return
+			}
+		}
+	}
+	openBrowser(url)
+}
+
+func windowsBrowserBinaries() []string {
+	var out []string
+	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
+		dir := os.Getenv(key)
+		if dir == "" {
+			continue
+		}
+		out = append(out,
+			dir+`\Microsoft\Edge\Application\msedge.exe`,
+			dir+`\Google\Chrome\Application\chrome.exe`,
+		)
+	}
+	return out
 }
 
 var _ = json.Marshal

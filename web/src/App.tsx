@@ -37,7 +37,7 @@ export function App() {
   const status = useQuery({ queryKey: ['status'], queryFn: api.status, refetchInterval: 15000 })
   const stats = useQuery({ queryKey: ['stats'], queryFn: api.stats, refetchInterval: 30000 })
   const remotes = useQuery({ queryKey: ['remotes'], queryFn: api.remotes, refetchInterval: 30000 })
-  const deps = useQuery({ queryKey: ['deps'], queryFn: api.deps })
+  const deps = useQuery({ queryKey: ['deps'], queryFn: api.deps, refetchInterval: 5000 })
   const templates = useQuery({ queryKey: ['templates'], queryFn: api.templates, staleTime: 300_000 })
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
   const queue = useQuery({ queryKey: ['queue'], queryFn: api.queue, refetchInterval: 5000 })
@@ -52,11 +52,23 @@ export function App() {
   })
 
   // Onboarding appears once per fresh install, never blocks the main UI.
+  // Missing required components are surfaced inside the wizard as its first
+  // step (FirstRunWizard), so a fresh user installs them without searching.
+  // Returning users get the dependency manager dialog directly.
+  const depsShown = useRef(false)
+
   useEffect(() => {
-    if (onboardingShown.current) return
-    if (status.data && status.data.onboarded === false) {
+    const st = status.data
+    if (!st) return
+    if (st.onboarded === false && !onboardingShown.current) {
       onboardingShown.current = true
       setOnboardingOpen(true)
+      return
+    }
+    if (depsShown.current) return
+    if (st.components_total > 0 && st.components_ok < st.components_total) {
+      depsShown.current = true
+      setDepsOpen(true)
     }
   }, [status.data])
 
@@ -216,6 +228,8 @@ export function App() {
         open={onboardingOpen}
         onOpenChange={setOnboardingOpen}
         onOpenConnections={() => setConnectionsOpen(true)}
+        deps={deps.data?.components ?? []}
+        depProgress={socket.depProgress}
       />
     </div>
   )

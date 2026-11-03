@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os/exec"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -59,6 +60,12 @@ func (pg *windowsProcessGroup) Start(cmd *exec.Cmd) error {
 	if pg.job == 0 {
 		return errors.New("process group: already terminated")
 	}
+	// CREATE_NO_WINDOW keeps bundled tools (curl, rclone, yt-dlp) from
+	// flashing console windows next to the UI.
+	if cmd.SysProcAttr == nil {
+		cmd.SysProcAttr = &syscall.SysProcAttr{}
+	}
+	cmd.SysProcAttr.CreationFlags |= 0x08000000 // CREATE_NO_WINDOW
 	if err := cmd.Start(); err != nil {
 		return err
 	}

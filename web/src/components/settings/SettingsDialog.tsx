@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, SlidersHorizontal, Zap } from 'lucide-react'
+import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, ShieldCheck, SlidersHorizontal, Zap } from 'lucide-react'
 import type { Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
@@ -26,6 +26,29 @@ import { ErrorText } from '@/components/common/StatusBadge'
 const MIB = 1024 * 1024
 const MBPS = 1_000_000
 const BUFFERS = [32, 64, 128, 256, 512, 1024]
+
+/** Third-party components shipped or used by StreamDrop (settings → Licenses). */
+const THIRD_PARTY: { name: string; license: string; url: string }[] = [
+  { name: 'rclone', license: 'MIT', url: 'https://rclone.org/' },
+  { name: 'yt-dlp', license: 'Unlicense', url: 'https://github.com/yt-dlp/yt-dlp' },
+  { name: 'curl', license: 'curl / MIT', url: 'https://curl.se/' },
+  { name: 'Go', license: 'BSD-3-Clause', url: 'https://go.dev/' },
+  { name: 'React', license: 'MIT', url: 'https://react.dev/' },
+  { name: 'Vite', license: 'MIT', url: 'https://vitejs.dev/' },
+  { name: 'Tailwind CSS', license: 'MIT', url: 'https://tailwindcss.com/' },
+  { name: 'Radix UI', license: 'MIT', url: 'https://www.radix-ui.com/' },
+  { name: 'framer-motion', license: 'MIT', url: 'https://motion.dev/' },
+  { name: 'recharts', license: 'MIT', url: 'https://recharts.org/' },
+  { name: 'sonner', license: 'MIT', url: 'https://sonner.emilkowal.ski/' },
+  { name: 'lucide-react', license: 'ISC', url: 'https://lucide.dev/' },
+  { name: 'i18next', license: 'MIT', url: 'https://www.i18next.com/' },
+  { name: 'modernc.org/sqlite', license: 'BSD-3-Clause', url: 'https://pkg.go.dev/modernc.org/sqlite' },
+  { name: 'go-chi/chi', license: 'MIT', url: 'https://github.com/go-chi/chi' },
+  { name: 'goose', license: 'MIT', url: 'https://github.com/pressly/goose' },
+  { name: 'energye/systray', license: 'Apache-2.0', url: 'https://github.com/energye/systray' },
+  { name: 'go-toast', license: 'MIT', url: 'https://github.com/go-toast/toast' },
+  { name: 'golang.org/x/crypto & x/sys', license: 'BSD-3-Clause', url: 'https://pkg.go.dev/golang.org/x/crypto' },
+]
 
 interface Draft {
   parallel_limit: number
@@ -174,6 +197,10 @@ export function SettingsDialog({
             <TabsTrigger value="interface">
               <Languages className="mr-1 inline h-3 w-3" />
               {t('settings.interface')}
+            </TabsTrigger>
+            <TabsTrigger value="licenses">
+              <ShieldCheck className="mr-1 inline h-3 w-3" />
+              {t('settings.licenses')}
             </TabsTrigger>
           </TabsList>
 
@@ -354,6 +381,28 @@ export function SettingsDialog({
               <LanguageSwitcher />
             </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>
+          </TabsContent>
+
+          <TabsContent value="licenses" className="space-y-4">
+            <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.licensesNote')}</p>
+            <div className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.07]">
+              {THIRD_PARTY.map((item) => (
+                <div key={item.name} className="flex items-center justify-between gap-3 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-slate-200">{item.name}</p>
+                    <p className="text-[10px] text-slate-500">{item.license}</p>
+                  </div>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 text-[11px] text-sky-300 hover:text-sky-200"
+                  >
+                    {t('common.open')}
+                  </a>
+                </div>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
 
