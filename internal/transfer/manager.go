@@ -597,7 +597,7 @@ func (m *Manager) finishFailure(ctx context.Context, t *runningTask, tr store.Tr
 	remote, remoteErr := m.Store.GetRemote(derefString(tr.RemoteID))
 	if remoteErr == nil && m.Cleaner != nil {
 		if cleanupErr := m.Cleaner.DeleteObject(context.WithoutCancel(ctx), remote.RcloneName, tr.RemotePath, sanitizeFilename(tr.FileName())); cleanupErr != nil {
-			m.logTransfer(tr.ID, "warn", "cleanup", fmt.Sprintf("cleanup failed: %v", apiErr.Details))
+			m.logTransfer(tr.ID, "warn", "cleanup", fmt.Sprintf("cleanup failed: %v", cleanupErr))
 		} else {
 			m.logTransfer(tr.ID, "info", "cleanup", "partial object removed from cloud")
 		}

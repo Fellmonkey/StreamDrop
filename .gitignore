@@ -37,3 +37,4 @@ web/playwright-report/
 web/e2e-integration/fixtures/*.iso
 web/e2e-integration/fixtures/*.zip
 /web/test-results
+SECURITY_REVIEW.md

@@ -412,10 +412,14 @@ func openBrowser(url string) {
 // desktop-app window without tabs/chrome). It falls back to the default
 // browser when neither Edge nor Chrome is installed.
 func openAppWindow(url string) {
+	viewURL := url
+	if !strings.Contains(viewURL, "?") {
+		viewURL += "?view=app"
+	}
 	if runtime.GOOS == "windows" {
 		for _, bin := range windowsBrowserBinaries() {
 			if _, err := os.Stat(bin); err == nil {
-				_ = exec.Command(bin, "--app="+url).Start()
+				_ = exec.Command(bin, "--app="+viewURL).Start()
 				return
 			}
 		}

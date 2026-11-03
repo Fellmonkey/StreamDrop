@@ -236,7 +236,8 @@ func (c *Client) Mkdir(ctx context.Context, fs string) error {
 
 // DeleteFile removes one object (fail-safe cleanup).
 func (c *Client) DeleteFile(ctx context.Context, fs string) error {
-	_, err := c.Call(ctx, "operations/deletefile", map[string]any{"fs": fs})
+	remote, root := splitRemoteFS(fs)
+	_, err := c.Call(ctx, "operations/deletefile", map[string]any{"fs": root, "remote": remote})
 	return err
 }
 

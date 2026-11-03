@@ -25,6 +25,7 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
   const [dark, setDark] = useState<boolean>(readTheme() === 'dark')
   const saved = stats?.saved_bytes ?? 0
   const ready = Boolean(status?.engine_ready)
+  const isApp = new URLSearchParams(window.location.search).get('view') === 'app'
 
   const toggleTheme = () => {
     const next = !dark
@@ -129,24 +130,27 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
         </Button>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => void api.openUI('browser')}
-            aria-label={t('header.openBrowser')}
-            title={t('header.openBrowser')}
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => void api.openUI('app')}
-            aria-label={t('header.openApp')}
-            title={t('header.openApp')}
-          >
-            <AppWindow className="h-4 w-4" />
-          </Button>
+          {isApp ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void api.openUI('browser')}
+              aria-label={t('header.openBrowser')}
+              title={t('header.openBrowser')}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void api.openUI('app')}
+              aria-label={t('header.openApp')}
+              title={t('header.openApp')}
+            >
+              <AppWindow className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
