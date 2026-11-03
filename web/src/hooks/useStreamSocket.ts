@@ -1,27 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { LogLine, NotifyEvent, QueueView, Snapshot, TransferMetric } from '@/types/api'
-
-interface SocketState {
-  connected: boolean
-  snapshot: Snapshot | null
-  metrics: Record<string, TransferMetric>
-  logs: Record<string, LogLine[]>
-  notify: NotifyEvent | null
-  depProgress: Record<string, { received: number; total: number; speed_bps: number; state: string; code?: string }>
-  updateProgress: { version: string; received: number; total: number; state: string } | null
-  queue: QueueView | null
-}
-
-const INITIAL: SocketState = {
-  connected: false,
-  snapshot: null,
-  metrics: {},
-  logs: {},
-  notify: null,
-  depProgress: {},
-  updateProgress: null,
-  queue: null,
-}
+import { INITIAL_SOCKET_STATE, reduceSocketState, type SocketState } from '@/lib/socketReducer'
 
 /**
  * useStreamSocket owns the realtime channel. A dropped connection never affects
@@ -29,7 +7,7 @@ const INITIAL: SocketState = {
  * fresh snapshot, after which metrics catch up automatically.
  */
 export function useStreamSocket(onQueueChange?: () => void) {
-  const [state, setState] = useState<SocketState>(INITIAL)
+  const [state, setState] = useState<SocketState>(INITIAL_SOCKET_STATE)
   const retry = useRef(0)
   const closed = useRef(false)
   const socket = useRef<WebSocket | null>(null)
@@ -55,53 +33,12 @@ export function useStreamSocket(onQueueChange?: () => void) {
       } catch {
         return
       }
-      const { event: name, data } = parsed
-      switch (name) {
-        case 'snapshot': {
-          const snapshot = data as Snapshot
-          const metrics: Record<string, TransferMetric> = {}
-          for (const m of snapshot.metrics ?? []) metrics[m.transfer_id] = m
-          setState((s) => ({ ...s, snapshot, queue: snapshot.queue, metrics: { ...metrics, ...s.metrics } }))
-          break
-        }
-        case 'transfer_metrics': {
-          const metric = data as TransferMetric
-          setState((s) => ({ ...s, metrics: { ...s.metrics, [metric.transfer_id]: metric } }))
-          break
-        }
-        case 'transfer_log': {
-          const line = data as LogLine
-          setState((s) => {
-            const existing = s.logs[line.transfer_id] ?? []
-            const next = [...existing, line].slice(-300)
-            return { ...s, logs: { ...s.logs, [line.transfer_id]: next } }
-          })
-          break
-        }
-        case 'queue_update': {
-          const payload = data as { queue: QueueView }
-          setState((s) => ({ ...s, queue: payload.queue }))
-          queueCb.current?.()
-          break
-        }
-        case 'notify': {
-          setState((s) => ({ ...s, notify: data as NotifyEvent }))
-          break
-        }
-        case 'dep_progress': {
-          const p = data as { id: string; received: number; total: number; speed_bps: number; state: string; code?: string }
-          setState((s) => ({ ...s, depProgress: { ...s.depProgress, [p.id]: p } }))
-          break
-        }
-        case 'update_progress': {
-          setState((s) => ({
-            ...s,
-            updateProgress: data as { version: string; received: number; total: number; state: string },
-          }))
-          break
-        }
-        default:
-          break
+      const prev = stateRef.current
+      const next = reduceSocketState(prev, parsed)
+      stateRef.current = next
+      setState(next)
+      if (parsed.event === 'queue_update' && next.queue !== prev.queue) {
+        queueCb.current?.()
       }
     }
 
@@ -118,6 +55,9 @@ export function useStreamSocket(onQueueChange?: () => void) {
       ws.close()
     }
   }, [])
+
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   useEffect(() => {
     closed.current = false

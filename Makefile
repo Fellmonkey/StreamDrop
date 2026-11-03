@@ -6,7 +6,7 @@ WEB := web
 BIN := bin/streamdrop
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: all web deps build build-windows test vet lint depcheck run clean package
+.PHONY: all web deps build build-windows test test-web test-e2e vet lint depcheck run clean package
 
 all: web build
 
@@ -28,6 +28,12 @@ build-windows: web
 
 test:
 	go test ./...
+
+test-web:
+	cd $(WEB) && npm test
+
+test-e2e:
+	go test ./internal/e2e/ -run MailRu -v
 
 vet:
 	go vet ./...
