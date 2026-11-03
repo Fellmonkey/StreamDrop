@@ -50,6 +50,10 @@ type Handler struct {
 	// EnsureDaemon starts the rclone RC daemon after rclone is installed at
 	// runtime, so a fresh install never needs a manual restart.
 	EnsureDaemon func() error
+	// OpenBrowser opens the UI in the default browser (normal tab).
+	OpenBrowser func() error
+	// OpenApp opens/refocuses the desktop-style app window.
+	OpenApp func() error
 	Version      string
 	Port         int
 	DataDir      string
@@ -394,6 +398,38 @@ func isNumericChatID(s string) bool {
 		}
 	}
 	return true
+}
+
+// UIOpen implements POST /api/v1/ui/open — opens the UI either in the default
+// browser (mode=browser) or in the desktop app window (mode=app).
+func (h *Handler) UIOpen(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Mode string `json:"mode"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		apierr.Write(w, err)
+		return
+	}
+	switch body.Mode {
+	case "browser":
+		if h.OpenBrowser != nil {
+			if err := h.OpenBrowser(); err != nil {
+				apierr.Write(w, apierr.Wrap(apierr.CodeInternalError, err, nil))
+				return
+			}
+		}
+	case "app":
+		if h.OpenApp != nil {
+			if err := h.OpenApp(); err != nil {
+				apierr.Write(w, apierr.Wrap(apierr.CodeInternalError, err, nil))
+				return
+			}
+		}
+	default:
+		apierr.Write(w, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "mode"}))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 // ---------------------------------------------------------------------------

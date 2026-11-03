@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Ban, ChevronDown, ChevronUp, Pause, Play, RotateCcw } from 'lucide-react'
+import { Ban, ChevronDown, ChevronUp, Clock, Pause, Play, RotateCcw } from 'lucide-react'
 import type { LogLine, QueueState, Transfer, TransferMetric } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes, formatEta, formatSpeed, pct } from '@/lib/formatters'
@@ -146,6 +146,16 @@ export function ActiveTaskCard({ transfer, metric, logs }: ActiveTaskCardProps) 
             <span className="numeric text-emerald-300/80">{formatBytes(confirmed, i18n.language)}</span>
           </div>
           <Progress value={confirmedPct} tone="success" />
+          {downloaded > 0 && confirmedPct === 0 ? (
+            total > 0 && downloaded >= total ? (
+              <div className="mt-1.5 flex items-start gap-2 rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2 text-[11px] leading-relaxed text-warn">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{t('pipeline.waitCloudFinal')}</span>
+              </div>
+            ) : (
+              <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{t('pipeline.waitCloud')}</p>
+            )
+          ) : null}
         </div>
       </div>
 

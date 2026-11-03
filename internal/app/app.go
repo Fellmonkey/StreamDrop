@@ -240,6 +240,8 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 		return nil
 	}
 	h.EnsureDaemon = ensureDaemon
+	h.OpenBrowser = func() error { openBrowser(url); return nil }
+	h.OpenApp = func() error { openAppWindow(url); return nil }
 
 	router := server.New(h, token, port, hub, web.Handler(token))
 	srv := &http.Server{

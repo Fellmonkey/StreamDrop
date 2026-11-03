@@ -127,27 +127,35 @@ export function DependencyManagerDialog({
                       </div>
                       <div className="flex shrink-0 gap-1.5">
                         {item.status === 'installed' ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={installing}
-                              onClick={() => install.mutate(item.id)}
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                              {t('deps.update')}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-slate-500 hover:text-red-300"
-                              disabled={installing}
-                              onClick={() => remove.mutate(item.id)}
-                              aria-label={t('deps.remove')}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-500 hover:text-red-300"
+                            disabled={installing}
+                            onClick={() => remove.mutate(item.id)}
+                            aria-label={t('deps.remove')}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : item.status === 'outdated' ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={installing}
+                            onClick={() => install.mutate(item.id)}
+                          >
+                            {installing ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                {t('common.loading')}
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-3.5 w-3.5" />
+                                {t('deps.update')}
+                              </>
+                            )}
+                          </Button>
                         ) : (
                           <Button
                             variant="primary"

@@ -249,6 +249,10 @@ export const api = {
     return request<{ ok: boolean }>('/notifications/test', { method: 'POST' })
   },
 
+  openUI(mode: 'browser' | 'app') {
+    return request<{ ok: boolean }>('/ui/open', { method: 'POST', body: JSON.stringify({ mode }) })
+  },
+
   stats() {
     return request<Stats>('/stats')
   },

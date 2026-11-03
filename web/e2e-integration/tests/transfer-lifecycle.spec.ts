@@ -108,4 +108,35 @@ test.describe('Transfer lifecycle (real Mail.ru)', () => {
     await section.getByRole('button', { name: 'Отмена' }).first().click()
     await waitStatus(page, 'Прервано', 25_000)
   })
+
+  test('page reload keeps transfer running and restores snapshot', async ({ page }) => {
+    const api = await makeApi(env)
+    const remote = await ensureRemote(env)
+    await api.putSettings({ locale: 'ru' })
+
+    const src = isoUrl(env)
+    await api.createTransfers({
+      urls: [src],
+      remote_id: remote.id,
+      remote_path: '/',
+      mode: 'ring_buffer',
+      buffer_size_bytes: 64 * 1024 * 1024,
+      engine: '',
+      auth_profile_id: '',
+      bandwidth_down_bps: 3_000_000,
+      bandwidth_up_bps: 3_000_000,
+      file_size: 0,
+    })
+
+    await openApp(page, env)
+    const section = activePipeline(page)
+    await expect(section.getByText('ubuntu-24.04-live-server.iso').first()).toBeVisible({ timeout: 20_000 })
+
+    // closing/reloading the page must not interrupt the transfer
+    await page.reload()
+    await expect(activePipeline(page).getByText('ubuntu-24.04-live-server.iso').first()).toBeVisible({ timeout: 25_000 })
+
+    await section.getByRole('button', { name: 'Отмена' }).first().click()
+    await waitStatus(page, 'Прервано', 40_000)
+  })
 })

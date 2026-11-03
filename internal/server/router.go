@@ -71,6 +71,7 @@ func New(h *handlers.Handler, token string, port int, hub *ws.Hub, static http.H
 		api.Get("/settings", h.SettingsGET)
 		api.Put("/settings", h.SettingsPUT)
 		api.Post("/notifications/test", h.NotificationsTest)
+		api.Post("/ui/open", h.UIOpen)
 
 		api.Get("/stats", h.Stats)
 		api.Get("/status", h.Status)

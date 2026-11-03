@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cloud, Droplet, HardDrive, Moon, Package, Settings as SettingsIcon, ShieldCheck, Sun } from 'lucide-react'
+import { AppWindow, Cloud, ExternalLink, HardDrive, Moon, Package, Settings as SettingsIcon, ShieldCheck, Sun } from 'lucide-react'
 import type { Stats, Status } from '@/types/api'
+import { api } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
 import { Badge, Button, Tooltip } from '@/components/ui/primitives'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
@@ -35,9 +36,12 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-[var(--header-bg)] backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-[1440px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 shadow-[0_0_24px_-6px_rgba(56,189,248,0.8)]">
-            <Droplet className="h-4 w-4 text-slate-950" strokeWidth={2.5} />
-          </div>
+          <img
+            src="/logo.png"
+            alt="StreamDrop"
+            className="h-8 w-8 rounded-xl object-cover"
+            draggable={false}
+          />
           <div className="leading-tight">
             <p className="text-sm font-semibold tracking-tight text-slate-100">StreamDrop</p>
             <p className="hidden text-[10px] uppercase tracking-[0.14em] text-slate-500 sm:block">
@@ -125,6 +129,24 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
         </Button>
 
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => void api.openUI('browser')}
+            aria-label={t('header.openBrowser')}
+            title={t('header.openBrowser')}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => void api.openUI('app')}
+            aria-label={t('header.openApp')}
+            title={t('header.openApp')}
+          >
+            <AppWindow className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

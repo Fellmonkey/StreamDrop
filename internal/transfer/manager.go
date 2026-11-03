@@ -542,6 +542,13 @@ func (m *Manager) execute(ctx context.Context, t *runningTask) {
 		return
 	}
 
+	// The user aborted while the uploader was finishing (or the app is
+	// shutting down): never report such a transfer as completed.
+	if ctx.Err() != nil {
+		m.finishFailure(ctx, t, tr, apierr.New(apierr.CodeTransferAborted, nil))
+		return
+	}
+
 	completedAt := time.Now().UTC()
 	tr.Status = queue.StatusCompleted
 	tr.BytesTransferred = res.Bytes

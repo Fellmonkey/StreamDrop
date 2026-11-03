@@ -46,6 +46,8 @@
     "connections": "Connections",
     "settings": "Settings",
     "language": "Language",
+    "openBrowser": "Open in browser (tab)",
+    "openApp": "Back to the app window",
     "tabHint": "Closing the tab does not stop a transfer — the service keeps running in the tray.",
     "uptime": "Uptime",
     "notConnected": "Disconnected",
@@ -160,7 +162,9 @@
     "failedReason": "Reason",
     "speedIn": "In",
     "speedOut": "Out",
-    "of": "of"
+    "of": "of",
+    "waitCloud": "The cloud confirms writes with a delay — the file may appear there after a few minutes.",
+    "waitCloudFinal": "Download finished (100%), but the cloud hasn't confirmed the write yet. Please wait — the server needs time to process the data (usually a few minutes)."
   },
   "history": {
     "title": "History",

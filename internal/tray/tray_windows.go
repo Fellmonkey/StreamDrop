@@ -30,6 +30,9 @@ func start(ctx context.Context, cb Callbacks) {
 		systray.Run(func() {
 			systray.SetTitle("StreamDrop")
 			systray.SetTooltip("StreamDrop — stream to cloud")
+			if len(icon) > 0 {
+				systray.SetIcon(icon)
+			}
 
 			open := systray.AddMenuItem("Open StreamDrop", "Open the desktop app window")
 			openBrowser := systray.AddMenuItem("Open in browser", "Open the web interface in your default browser")
