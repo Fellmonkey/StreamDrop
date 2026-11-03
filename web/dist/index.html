@@ -21,12 +21,16 @@
         if (a === 'amber' || a === 'emerald' || a === 'violet') {
           document.documentElement.setAttribute('data-accent', a)
         }
+        var s = localStorage.getItem('streamdrop.style')
+        if (s === 'contrast' || s === 'soft') {
+          document.documentElement.setAttribute('data-style', s)
+        }
       } catch (e) {
         document.documentElement.classList.add('dark')
       }
     </script>
-    <script type="module" crossorigin src="/assets/index-B_ua2lyA.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-xx5FSQK2.css">
+    <script type="module" crossorigin src="/assets/index-DoV5kHKN.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BkpOaT89.css">
   </head>
   <body>
     <div id="root"></div>

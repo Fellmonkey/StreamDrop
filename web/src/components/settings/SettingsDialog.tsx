@@ -6,7 +6,7 @@ import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, ShieldCheck, S
 import type { Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
-import { applyAccent, readAccent, type Accent } from '@/lib/theme'
+import { applyAccent, applyStyle, readAccent, readStyle, type Accent, type Style } from '@/lib/theme'
 import {
   Badge,
   Button,
@@ -27,8 +27,10 @@ const MIB = 1024 * 1024
 const MBPS = 1_000_000
 const BUFFERS = [32, 64, 128, 256, 512, 1024]
 
-/** Third-party components shipped or used by StreamDrop (settings → Licenses). */
-const THIRD_PARTY: { name: string; license: string; url: string }[] = [
+/** Fixed-height scroll area for tab content: the tab row never moves. */
+const TAB_CONTENT = 'space-y-4 h-[52dvh] min-h-[360px] overflow-y-auto overscroll-contain pr-0.5'
+
+/** Third-party components shipped or used by StreamDrop (settings → Licenses). */const THIRD_PARTY: { name: string; license: string; url: string }[] = [
   { name: 'rclone', license: 'MIT', url: 'https://rclone.org/' },
   { name: 'yt-dlp', license: 'Unlicense', url: 'https://github.com/yt-dlp/yt-dlp' },
   { name: 'curl', license: 'curl / MIT', url: 'https://curl.se/' },
@@ -78,6 +80,7 @@ export function SettingsDialog({
   const [telegramToken, setTelegramToken] = useState('')
   const [telegramChat, setTelegramChat] = useState('')
   const [accent, setAccent] = useState<Accent>(readAccent)
+  const [style, setStyle] = useState<Style>(readStyle)
 
   const save = useMutation({
     mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
@@ -163,7 +166,7 @@ export function SettingsDialog({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="queue" className="space-y-4">
+          <TabsContent value="queue" className={TAB_CONTENT}>
             <Row label={t('settings.parallel')} hint="1–5">
               <Select
                 className="w-24"
@@ -189,7 +192,7 @@ export function SettingsDialog({
             </Row>
           </TabsContent>
 
-          <TabsContent value="stream" className="space-y-4">
+          <TabsContent value="stream" className={TAB_CONTENT}>
             <Row label={t('settings.defaultMode')}>
               <Select
                 className="w-44"
@@ -239,7 +242,7 @@ export function SettingsDialog({
             </Row>
           </TabsContent>
 
-          <TabsContent value="notifications" className="space-y-4">
+          <TabsContent value="notifications" className={TAB_CONTENT}>
             <Row label={t('settings.toast')}>
               <Switch
                 checked={settings?.notifications_toast !== '0'}
@@ -266,8 +269,10 @@ export function SettingsDialog({
               <Input
                 value={telegramChat}
                 onChange={(e) => setTelegramChat(e.target.value)}
+                placeholder={t('settings.telegramChatPlaceholder')}
                 className="font-mono text-xs"
               />
+              <p className="text-[10px] leading-relaxed text-slate-500">{t('settings.telegramChatHint')}</p>
               <div className="flex items-center gap-2 pt-1">
                 <Button size="sm" variant="secondary" disabled={save.isPending} onClick={saveTelegram}>
                   <Send className="h-3.5 w-3.5" />
@@ -318,7 +323,7 @@ export function SettingsDialog({
             ) : null}
           </TabsContent>
 
-          <TabsContent value="system" className="space-y-4">
+          <TabsContent value="system" className={TAB_CONTENT}>
             <Row label={t('settings.version')}>
               <Badge tone="muted">{status?.version ?? '—'}</Badge>
             </Row>
@@ -338,7 +343,7 @@ export function SettingsDialog({
             </Row>
           </TabsContent>
 
-          <TabsContent value="interface" className="space-y-4">
+          <TabsContent value="interface" className={TAB_CONTENT}>
             <Row label={t('settings.accent')} hint={t('settings.accentHint')}>
               <Select
                 className="w-44"
@@ -355,10 +360,25 @@ export function SettingsDialog({
                 <option value="violet">{t('settings.presetViolet')}</option>
               </Select>
             </Row>
+            <Row label={t('settings.style')} hint={t('settings.styleHint')}>
+              <Select
+                className="w-44"
+                value={style}
+                onChange={(e) => {
+                  const next = e.target.value as Style
+                  applyStyle(next)
+                  setStyle(next)
+                }}
+              >
+                <option value="clean">{t('settings.styleClean')}</option>
+                <option value="contrast">{t('settings.styleContrast')}</option>
+                <option value="soft">{t('settings.styleSoft')}</option>
+              </Select>
+            </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>
           </TabsContent>
 
-          <TabsContent value="licenses" className="space-y-4">
+          <TabsContent value="licenses" className={TAB_CONTENT}>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.licensesNote')}</p>
             <div className="divide-y divide-white/[0.05] rounded-xl border border-white/[0.07]">
               {THIRD_PARTY.map((item) => (

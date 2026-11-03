@@ -1,10 +1,12 @@
-/** Minimal theme + accent helpers: choices live in localStorage. */
+/** Minimal theme/accent/style helpers: choices live in localStorage. */
 
 export type Theme = 'dark' | 'light'
 export type Accent = 'sky' | 'amber' | 'emerald' | 'violet'
+export type Style = 'clean' | 'contrast' | 'soft'
 
 const THEME_KEY = 'streamdrop.theme'
 const ACCENT_KEY = 'streamdrop.accent'
+const STYLE_KEY = 'streamdrop.style'
 
 export function readTheme(): Theme {
   try {
@@ -40,6 +42,28 @@ export function applyAccent(accent: Accent): void {
   }
   try {
     localStorage.setItem(ACCENT_KEY, accent)
+  } catch {
+    /* private mode */
+  }
+}
+
+export function readStyle(): Style {
+  try {
+    const v = localStorage.getItem(STYLE_KEY)
+    return v === 'contrast' || v === 'soft' ? v : 'clean'
+  } catch {
+    return 'clean'
+  }
+}
+
+export function applyStyle(style: Style): void {
+  if (style === 'clean') {
+    document.documentElement.removeAttribute('data-style')
+  } else {
+    document.documentElement.setAttribute('data-style', style)
+  }
+  try {
+    localStorage.setItem(STYLE_KEY, style)
   } catch {
     /* private mode */
   }

@@ -21,6 +21,10 @@
         if (a === 'amber' || a === 'emerald' || a === 'violet') {
           document.documentElement.setAttribute('data-accent', a)
         }
+        var s = localStorage.getItem('streamdrop.style')
+        if (s === 'contrast' || s === 'soft') {
+          document.documentElement.setAttribute('data-style', s)
+        }
       } catch (e) {
         document.documentElement.classList.add('dark')
       }

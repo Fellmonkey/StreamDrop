@@ -8,10 +8,11 @@ import './index.css'
 import App from './App'
 import { TooltipProvider } from '@/components/ui/primitives'
 import { EASE_OUT } from '@/lib/motion'
-import { applyAccent, applyTheme, readAccent, readTheme } from '@/lib/theme'
+import { applyAccent, applyStyle, applyTheme, readAccent, readStyle, readTheme } from '@/lib/theme'
 
 applyTheme(readTheme())
 applyAccent(readAccent())
+applyStyle(readStyle())
 
 const queryClient = new QueryClient({
   defaultOptions: {
