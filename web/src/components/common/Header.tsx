@@ -1,11 +1,13 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cloud, Droplet, HardDrive, Package, Settings as SettingsIcon, ShieldCheck } from 'lucide-react'
+import { Cloud, Droplet, HardDrive, Moon, Package, Settings as SettingsIcon, ShieldCheck, Sun } from 'lucide-react'
 import type { Stats, Status } from '@/types/api'
 import { formatBytes } from '@/lib/formatters'
 import { Badge, Button, Tooltip } from '@/components/ui/primitives'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { PulseDot } from '@/components/common/PulseDot'
+import { applyTheme, readTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
 interface HeaderProps {
@@ -19,8 +21,15 @@ interface HeaderProps {
 /** Header is the persistent product bar: logo, saved resource, engine health. */
 export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpenDeps }: HeaderProps) {
   const { t, i18n } = useTranslation()
+  const [dark, setDark] = useState<boolean>(readTheme() === 'dark')
   const saved = stats?.saved_bytes ?? 0
   const ready = Boolean(status?.engine_ready)
+
+  const toggleTheme = () => {
+    const next = !dark
+    setDark(next)
+    applyTheme(next ? 'dark' : 'light')
+  }
 
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-border bg-[var(--header-bg)] backdrop-blur-xl">
@@ -115,8 +124,19 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
           <span className="hidden md:inline">{t('header.connections')}</span>
         </Button>
 
-        <div className="hidden sm:block">
-          <LanguageSwitcher compact />
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            aria-label={t('settings.theme')}
+            title={t('settings.theme')}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+          <div className="hidden sm:block">
+            <LanguageSwitcher compact />
+          </div>
         </div>
 
         <Button variant="ghost" size="icon" onClick={onOpenSettings} aria-label={t('header.settings')}>

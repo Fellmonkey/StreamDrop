@@ -17,12 +17,16 @@
       try {
         var t = localStorage.getItem('streamdrop.theme') || 'dark'
         document.documentElement.classList.toggle('dark', t === 'dark')
+        var a = localStorage.getItem('streamdrop.accent')
+        if (a === 'amber' || a === 'emerald' || a === 'violet') {
+          document.documentElement.setAttribute('data-accent', a)
+        }
       } catch (e) {
         document.documentElement.classList.add('dark')
       }
     </script>
-    <script type="module" crossorigin src="/assets/index-B7Kx0JHo.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-C9zIJqNw.css">
+    <script type="module" crossorigin src="/assets/index-B_ua2lyA.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-xx5FSQK2.css">
   </head>
   <body>
     <div id="root"></div>

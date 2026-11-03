@@ -360,11 +360,40 @@ func (h *Handler) NotificationsTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cfg := h.telegramSettings()
+	if cfg.TelegramEnabled && cfg.TelegramChatID != "" && !isNumericChatID(cfg.TelegramChatID) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": map[string]any{
+				"code":        apierr.CodeTelegramChatInvalid,
+				"kind":        "auth",
+				"http_status": http.StatusBadRequest,
+				"params":      map[string]any{"field": "telegram_chat_id"},
+			},
+		})
+		return
+	}
 	if err := h.Notifier.TestMessage(r.Context(), cfg); err != nil {
 		apierr.Write(w, apierr.Wrap(apierr.CodeValidationFailed, err, map[string]any{"field": "notifications"}))
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// isNumericChatID accepts telegram chat ids (positive users/groups and
+// negative supergroup ids). Bot @usernames are never valid chat ids.
+func isNumericChatID(s string) bool {
+	if s == "" {
+		return false
+	}
+	trimmed := strings.TrimPrefix(s, "-")
+	if trimmed == "" {
+		return false
+	}
+	for _, ch := range trimmed {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------------------

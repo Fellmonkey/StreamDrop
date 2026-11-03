@@ -59,14 +59,16 @@ export function AdvancedTuning({
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>{t('stream.mode')}</Label>
-            <div className="flex rounded-lg border border-white/10 bg-black/30 p-1">
+            <div className="flex rounded-lg border border-border bg-muted p-1">
               {(['ring_buffer', 'pure_stream'] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => onChange({ mode })}
                   className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors ${
-                    values.mode === mode ? 'bg-white/[0.08] text-slate-100' : 'text-slate-500 hover:text-slate-300'
+                    values.mode === mode
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {mode === 'ring_buffer' ? t('stream.modeRing') : t('stream.modePure')}

@@ -49,6 +49,7 @@ const (
 	CodeQueuePaused           Code = "queue_paused"
 	CodeRemoteNotFound        Code = "remote_not_found"
 	CodeValidationFailed      Code = "validation_failed"
+	CodeTelegramChatInvalid   Code = "telegram_chat_invalid"
 	CodeLocalAuthRequired     Code = "local_auth_required"
 
 	// Extension codes. They exist in the catalog below just like the codes

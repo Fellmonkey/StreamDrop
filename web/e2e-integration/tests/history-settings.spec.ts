@@ -90,10 +90,9 @@ test.describe('History & Settings', () => {
     }
     await page.keyboard.press('Escape')
 
-    // interface tab: language switch persists (server side)
-    await page.getByRole('button', { name: 'Настройки' }).click()
-    await dialog.getByRole('tab', { name: 'Интерфейс' }).click()
-    await dialog.getByRole('button', { name: 'Язык' }).click()
+    // interface tab: accent presets apply instantly; language lives in header
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Язык' }).click()
     await page.getByText('English', { exact: true }).click()
     await expect(page.getByText('Connections')).toBeVisible({ timeout: 15_000 })
     await expect.poll(async () => (await api.settings()).locale).toBe('en')

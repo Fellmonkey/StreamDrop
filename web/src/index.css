@@ -306,6 +306,65 @@ select {
   box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.6) !important;
 }
 
+/* ------------------------------------------------------------------------- */
+/* Premium accent presets (brand default: amber). Applied via                */
+/* html[data-accent="…"]; "sky" is the base theme and needs no override.     */
+/* ------------------------------------------------------------------------- */
+
+/* Amber — фирменный акцент */
+html[data-accent='amber'] {
+  --primary: #d97706;
+  --primary-foreground: #fff7ed;
+  --ring: rgba(217, 119, 6, 0.45);
+  --accent: #fdf1e0;
+  --accent-foreground: #78350f;
+  --glow-accent: rgba(217, 119, 6, 0.08);
+}
+html[data-accent='amber'].dark {
+  --primary: #f59e0b;
+  --primary-foreground: #451a03;
+  --ring: rgba(245, 158, 11, 0.5);
+  --accent: #382a12;
+  --accent-foreground: #fcd34d;
+  --glow-accent: rgba(245, 158, 11, 0.09);
+}
+
+/* Emerald — спокойный премиум */
+html[data-accent='emerald'] {
+  --primary: #059669;
+  --primary-foreground: #ecfdf5;
+  --ring: rgba(5, 150, 105, 0.45);
+  --accent: #e2f5ec;
+  --accent-foreground: #065f46;
+  --glow-accent: rgba(5, 150, 105, 0.08);
+}
+html[data-accent='emerald'].dark {
+  --primary: #34d399;
+  --primary-foreground: #052e22;
+  --ring: rgba(52, 211, 153, 0.5);
+  --accent: #0e2f24;
+  --accent-foreground: #6ee7b7;
+  --glow-accent: rgba(52, 211, 153, 0.09);
+}
+
+/* Violet — глубокий премиум */
+html[data-accent='violet'] {
+  --primary: #7c3aed;
+  --primary-foreground: #f5f3ff;
+  --ring: rgba(124, 58, 237, 0.45);
+  --accent: #f0eafe;
+  --accent-foreground: #5b21b6;
+  --glow-accent: rgba(124, 58, 237, 0.08);
+}
+html[data-accent='violet'].dark {
+  --primary: #a78bfa;
+  --primary-foreground: #2e1065;
+  --ring: rgba(167, 139, 250, 0.5);
+  --accent: #241b3d;
+  --accent-foreground: #c4b5fd;
+  --glow-accent: rgba(167, 139, 250, 0.09);
+}
+
 /* Fewer and gentler: keep the state legible, drop movement. */
 @media (prefers-reduced-motion: reduce) {
   .sd-dialog,

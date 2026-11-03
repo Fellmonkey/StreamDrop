@@ -6,7 +6,7 @@ import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, ShieldCheck, S
 import type { Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
-import { applyTheme, readTheme, type Theme } from '@/lib/theme'
+import { applyAccent, readAccent, type Accent } from '@/lib/theme'
 import {
   Badge,
   Button,
@@ -21,7 +21,6 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/primitives'
-import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { ErrorText } from '@/components/common/StatusBadge'
 
 const MIB = 1024 * 1024
@@ -78,7 +77,7 @@ export function SettingsDialog({
   const [checking, setChecking] = useState(false)
   const [telegramToken, setTelegramToken] = useState('')
   const [telegramChat, setTelegramChat] = useState('')
-  const [theme, setTheme] = useState<Theme>(readTheme)
+  const [accent, setAccent] = useState<Accent>(readAccent)
 
   const save = useMutation({
     mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
@@ -340,18 +339,21 @@ export function SettingsDialog({
           </TabsContent>
 
           <TabsContent value="interface" className="space-y-4">
-            <Row label={t('settings.locale')}>
-              <LanguageSwitcher />
-            </Row>
-            <Row label={t('settings.theme')} hint={t('settings.themeHint')}>
-              <Switch
-                checked={theme === 'dark'}
-                onChange={(dark) => {
-                  const next: Theme = dark ? 'dark' : 'light'
-                  applyTheme(next)
-                  setTheme(next)
+            <Row label={t('settings.accent')} hint={t('settings.accentHint')}>
+              <Select
+                className="w-44"
+                value={accent}
+                onChange={(e) => {
+                  const next = e.target.value as Accent
+                  applyAccent(next)
+                  setAccent(next)
                 }}
-              />
+              >
+                <option value="sky">{t('settings.presetSky')}</option>
+                <option value="amber">{t('settings.presetAmber')}</option>
+                <option value="emerald">{t('settings.presetEmerald')}</option>
+                <option value="violet">{t('settings.presetViolet')}</option>
+              </Select>
             </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>
           </TabsContent>
