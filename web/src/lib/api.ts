@@ -253,6 +253,13 @@ export const api = {
     return request<{ ok: boolean }>('/ui/open', { method: 'POST', body: JSON.stringify({ mode }) })
   },
 
+  openURL(url: string, browser = 'default') {
+    return request<{ ok: boolean }>('/ui/open-url', {
+      method: 'POST',
+      body: JSON.stringify({ url, browser }),
+    })
+  },
+
   stats() {
     return request<Stats>('/stats')
   },

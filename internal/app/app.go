@@ -242,6 +242,7 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 	h.EnsureDaemon = ensureDaemon
 	h.OpenBrowser = func() error { openBrowser(url); return nil }
 	h.OpenApp = func() error { openAppWindow(url); return nil }
+	h.OpenURL = func(u, browser string) error { return openURLWith(browser, u) }
 
 	router := server.New(h, token, port, hub, web.Handler(token))
 	srv := &http.Server{
@@ -439,7 +440,56 @@ func windowsBrowserBinaries() []string {
 			dir+`\Google\Chrome\Application\chrome.exe`,
 		)
 	}
+	// Firefox lives outside the Chromium convention.
+	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)"} {
+		if dir := os.Getenv(key); dir != "" {
+			out = append(out, dir+`\Mozilla Firefox\firefox.exe`)
+		}
+	}
 	return out
+}
+
+// findBrowser returns an installed browser executable by friendly name.
+func findBrowser(name string) string {
+	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
+		dir := os.Getenv(key)
+		if dir == "" {
+			continue
+		}
+		switch name {
+		case "edge":
+			if p := dir + `\Microsoft\Edge\Application\msedge.exe`; fileExists(p) {
+				return p
+			}
+		case "chrome":
+			if p := dir + `\Google\Chrome\Application\chrome.exe`; fileExists(p) {
+				return p
+			}
+		case "firefox":
+			if p := dir + `\Mozilla Firefox\firefox.exe`; fileExists(p) {
+				return p
+			}
+		}
+	}
+	return ""
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// openURLWith opens a URL in the selected browser (default falls back to the
+// OS handler). Used for OAuth and external opening.
+func openURLWith(browser, url string) error {
+	if browser != "default" {
+		if p := findBrowser(browser); p != "" {
+			_ = exec.Command(p, url).Start()
+			return nil
+		}
+	}
+	openBrowser(url)
+	return nil
 }
 
 var _ = json.Marshal

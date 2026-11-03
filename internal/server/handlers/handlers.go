@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +55,9 @@ type Handler struct {
 	OpenBrowser func() error
 	// OpenApp opens/refocuses the desktop-style app window.
 	OpenApp func() error
+	// OpenURL opens an arbitrary http(s) URL in the requested browser
+	// ("default", "edge", "chrome", "firefox"). Used by OAuth flows.
+	OpenURL func(url, browser string) error
 	Version string
 	Port    int
 	DataDir string
@@ -419,6 +423,36 @@ func (h *Handler) UIOpen(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		apierr.Write(w, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "mode"}))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// UIOpenURL implements POST /api/v1/ui/open-url — opens an http(s) URL in the
+// selected browser (used by OAuth and external links).
+func (h *Handler) UIOpenURL(w http.ResponseWriter, r *http.Request) {
+	if h.OpenURL == nil {
+		apierr.Write(w, apierr.New(apierr.CodeInternalError, nil))
+		return
+	}
+	var body struct {
+		URL     string `json:"url"`
+		Browser string `json:"browser"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		apierr.Write(w, err)
+		return
+	}
+	u, err := url.Parse(body.URL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		apierr.Write(w, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "url"}))
+		return
+	}
+	if body.Browser == "" {
+		body.Browser = "default"
+	}
+	if err := h.OpenURL(u.String(), body.Browser); err != nil {
+		apierr.Write(w, apierr.Wrap(apierr.CodeInternalError, err, nil))
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})

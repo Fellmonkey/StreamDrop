@@ -329,7 +329,7 @@ export function AddCloudWizard({
                       </div>
                     </div>
                   ) : null}
-                  {oauth.blocked && oauth.authUrl ? (
+                  {oauth.status === 'pending' && oauth.authUrl ? (
                     <p className="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2 text-[11px] leading-relaxed text-warn">
                       {t('connections.oauthBlocked')}{' '}
                       <a href={oauth.authUrl} target="_blank" rel="noreferrer" className="underline">
@@ -459,6 +459,17 @@ export function AddCloudWizard({
                   ) : null}
                 </div>
               )}
+
+              <details className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-[11px]">
+                <summary className="cursor-pointer font-medium text-slate-300">{t('connections.instructions')}</summary>
+                <div className="mt-1.5 space-y-1 leading-relaxed text-slate-400">
+                  {access === 'oauth' ? <p>{t('connections.instrOAuth')}</p> : null}
+                  {access === 'token' ? <p>{t('connections.instrToken')}</p> : null}
+                  {access === 'password' ? <p>{t('connections.instrPassword')}</p> : null}
+                  {access === 'keys' ? <p>{t('connections.instrKeys')}</p> : null}
+                  {access === 'host' ? <p>{t('connections.instrHost')}</p> : null}
+                </div>
+              </details>
             </div>
           ) : null}
 

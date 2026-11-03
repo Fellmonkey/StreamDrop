@@ -7,6 +7,7 @@ import type { Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
 import { applyAccent, applyStyle, readAccent, readStyle, type Accent, type Style } from '@/lib/theme'
+import { applyBrowser, readBrowser, type BrowserChoice } from '@/lib/browserPref'
 import {
   Badge,
   Button,
@@ -81,6 +82,7 @@ export function SettingsDialog({
   const [telegramChat, setTelegramChat] = useState('')
   const [accent, setAccent] = useState<Accent>(readAccent)
   const [style, setStyle] = useState<Style>(readStyle)
+  const [browser, setBrowser] = useState<BrowserChoice>(readBrowser)
 
   const save = useMutation({
     mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
@@ -373,6 +375,22 @@ export function SettingsDialog({
                 <option value="clean">{t('settings.styleClean')}</option>
                 <option value="contrast">{t('settings.styleContrast')}</option>
                 <option value="soft">{t('settings.styleSoft')}</option>
+              </Select>
+            </Row>
+            <Row label={t('settings.browser')} hint={t('settings.browserHint')}>
+              <Select
+                className="w-44"
+                value={browser}
+                onChange={(e) => {
+                  const next = e.target.value as BrowserChoice
+                  applyBrowser(next)
+                  setBrowser(next)
+                }}
+              >
+                <option value="default">{t('settings.browserDefault')}</option>
+                <option value="edge">Microsoft Edge</option>
+                <option value="chrome">Google Chrome</option>
+                <option value="firefox">Mozilla Firefox</option>
               </Select>
             </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>
