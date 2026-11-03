@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  /* front_spec.md §2 motion tokens: fast, strict easing. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --canvas: #090a0f;
+  --surface: #11131b;
+  --elevated: #151823;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #38bdf8;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  min-height: 100dvh;
+}
+
+html {
+  /* No gray flash on tap, no landscape font inflation, no page rubber band. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  overscroll-behavior: none;
+  background:
+    radial-gradient(900px 500px at 12% -10%, rgba(56, 189, 248, 0.09), transparent 60%),
+    radial-gradient(800px 500px at 90% 0%, rgba(52, 211, 153, 0.05), transparent 55%),
+    var(--canvas);
+  color: #e5e7eb;
+  font-family: 'Inter', 'Geist Sans', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.32);
+}
+
+/* Controls respond immediately and never select their label on long-press. */
+button,
+a,
+[role='button'],
+[role='tab'],
+select {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* iOS zooms a focused input below 16px and never zooms back out. */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Edge-to-edge layout with the notch/home indicator padded back out. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Inner scrollers keep their own bounce but never chain to the page. */
+.scroll-contain {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Thin, unobtrusive scrollbars for data-dense panes. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+}
+
+.glass {
+  background: rgba(17, 19, 27, 0.82);
+  backdrop-filter: blur(14px);
+}
+
+.grid-lines {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.status-dot {
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12), 0 0 12px rgba(52, 211, 153, 0.55);
+}
+
+.flow-line {
+  stroke-dasharray: 6 6;
+  animation: dash 900ms linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes beacon {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.beacon-ring {
+  animation: beacon 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Radix overlays/dialogs: enter and leave through the same path. */
+@keyframes sd-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sd-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes sd-dialog-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes sd-dialog-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -49%) scale(0.98); }
+}
+@keyframes sd-sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes sd-sheet-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(12px); }
+}
+@keyframes sd-side-in {
+  from { opacity: 0.5; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes sd-side-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0.5; transform: translateX(100%); }
+}
+@keyframes sd-pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes sd-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+.sd-overlay[data-state='open'] { animation: sd-overlay-in 180ms var(--ease-out) both; }
+.sd-overlay[data-state='closed'] { animation: sd-overlay-out 150ms var(--ease-out) both; }
+.sd-dialog[data-state='open'] { animation: sd-dialog-in 200ms var(--ease-out) both; }
+.sd-dialog[data-state='closed'] { animation: sd-dialog-out 150ms var(--ease-out) both; }
+.sd-sheet[data-state='open'] { animation: sd-side-in 240ms var(--ease-out) both; }
+.sd-sheet[data-state='closed'] { animation: sd-side-out 180ms var(--ease-out) both; }
+.sd-pop[data-state='open'] { animation: sd-pop-in 150ms var(--ease-out) both; }
+.sd-pop[data-state='closed'] { animation: sd-pop-out 120ms var(--ease-out) both; }
+
+@media (max-width: 639px) {
+  .sd-dialog[data-state='open'] { animation: sd-sheet-in 240ms var(--ease-out) both; }
+  .sd-dialog[data-state='closed'] { animation: sd-sheet-out 180ms var(--ease-out) both; }
+}
+
+/* Fewer and gentler: keep the state legible, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  .sd-dialog,
+  .sd-sheet,
+  .sd-overlay {
+    animation-duration: 0.01ms !important;
+  }
+  .sd-pop,
+  .animate-fade-up,
+  .flow-line {
+    animation: none !important;
+  }
+  .beacon-ring {
+    display: none;
+  }
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+}

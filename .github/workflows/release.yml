@@ -1,0 +1,127 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+      - name: Build SPA
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+      - name: Tests
+        run: go test ./... -count=1
+      - name: Verify dependency catalog
+        run: go run ./cmd/depcheck -allow-unpinned
+
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { goos: windows, goarch: amd64, name: windows-amd64 }
+          - { goos: windows, goarch: arm64, name: windows-arm64 }
+          - { goos: linux, goarch: amd64, name: linux-amd64 }
+          - { goos: linux, goarch: arm64, name: linux-arm64 }
+          - { goos: darwin, goarch: amd64, name: darwin-amd64 }
+          - { goos: darwin, goarch: arm64, name: darwin-arm64 }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build SPA
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Fetch portable components (Windows reference)
+        if: matrix.name == 'windows-amd64'
+        run: |
+          set -euo pipefail
+          mkdir -p deps/rclone/v1.68.2 deps/yt-dlp/2025.09.26 deps/curl/8.23.0
+          curl -fsSL https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-windows-amd64.zip -o /tmp/rclone-v1.68.2-windows-amd64.zip
+          unzip -j -o /tmp/rclone-v1.68.2-windows-amd64.zip "*/rclone.exe" -d deps/rclone/v1.68.2
+          curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/download/2025.09.26/yt-dlp.exe -o deps/yt-dlp/2025.09.26/yt-dlp.exe
+          curl -fsSL https://curl.se/windows/dl-8.23.0_8/curl-8.23.0_8-win64-mingw.zip -o /tmp/curl-8.23.0_8-win64-mingw.zip
+          unzip -j -o /tmp/curl-8.23.0_8-win64-mingw.zip "*/bin/curl.exe" -d deps/curl/8.23.0
+
+      - name: Verify downloaded components
+        if: matrix.name == 'windows-amd64'
+        run: go run ./cmd/depcheck -os windows -arch amd64 -deps deps -staging /tmp
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          ext=""
+          flags="-s -w"
+          if [ "$GOOS" = "windows" ]; then
+            ext=".exe"
+            flags="-s -w -H=windowsgui"
+          fi
+          go build -trimpath -ldflags "$flags" -o "streamdrop${ext}" ./cmd/streamdrop
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          name="StreamDrop-${{ matrix.name }}"
+          mkdir -p "dist/${name}"
+          cp "streamdrop"* "dist/${name}/"
+          cp README.md "dist/${name}/"
+          if [ "${{ matrix.goos }}" = "windows" ] && [ -d deps ]; then
+            cp -r deps "dist/${name}/deps"
+          fi
+          (cd dist && zip -qr "${name}.zip" "${name}")
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StreamDrop-${{ matrix.name }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true
