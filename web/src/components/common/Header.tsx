@@ -23,7 +23,7 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
   const ready = Boolean(status?.engine_ready)
 
   return (
-    <header className="safe-top sticky top-0 z-30 border-b border-white/[0.06] bg-canvas/80 backdrop-blur-xl">
+    <header className="safe-top sticky top-0 z-30 border-b border-border bg-[var(--header-bg)] backdrop-blur-xl">
       <div className="mx-auto flex h-14 w-full max-w-[1440px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 shadow-[0_0_24px_-6px_rgba(56,189,248,0.8)]">

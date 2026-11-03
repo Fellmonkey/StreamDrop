@@ -2,21 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------------- */
+/* Design tokens — minimalism / modernism. Semantic roles for both themes.   */
+/* ------------------------------------------------------------------------- */
+
 :root {
-  color-scheme: dark;
-  /* front_spec.md §2 motion tokens: fast, strict easing. */
+  color-scheme: light;
+
+  /* motion (theme-independent) */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --duration-fast: 150ms;
   --duration-base: 200ms;
+
+  /* surfaces */
+  --background: #f5f6f8;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --muted: #eceef2;
+  --muted-foreground: #5b6572;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --elevated: #ffffff;
+
+  /* lines & focus */
+  --border: rgba(16, 24, 40, 0.12);
+  --input: rgba(16, 24, 40, 0.18);
+  --ring: rgba(14, 165, 233, 0.45);
+
+  /* action roles */
+  --primary: #0ea5e9;
+  --primary-foreground: #ffffff;
+  --secondary: #e7eaef;
+  --secondary-foreground: #1f2937;
+  --accent: #e6f4fc;
+  --accent-foreground: #075985;
+  --destructive: #e11d48;
+  --destructive-foreground: #ffffff;
+  --success: #059669;
+  --warn: #d97706;
+  --danger: #e11d48;
+
+  /* legacy aliases used by page-level code */
+  --canvas: #f5f6f8;
+  --surface: #ffffff;
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --grid-line: rgba(16, 24, 40, 0.05);
+  --glow-accent: rgba(14, 165, 233, 0.08);
+  --glow-success: rgba(5, 150, 105, 0.06);
+
+  --tw-ring-color: var(--ring);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #090a0f;
+  --foreground: #e5e7eb;
+  --card: #11131b;
+  --card-foreground: #e5e7eb;
+  --muted: #1a1d27;
+  --muted-foreground: #8a94a6;
+  --popover: #151823;
+  --popover-foreground: #e5e7eb;
+  --elevated: #151823;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: rgba(56, 189, 248, 0.45);
+
+  --primary: #38bdf8;
+  --primary-foreground: #082f49;
+  --secondary: #1c1f2b;
+  --secondary-foreground: #e5e7eb;
+  --accent: #0c2a3d;
+  --accent-foreground: #7dd3fc;
+  --destructive: #f87171;
+  --destructive-foreground: #450a0a;
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+
   --canvas: #090a0f;
   --surface: #11131b;
-  --elevated: #151823;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #38bdf8;
-  --success: #34d399;
-  --danger: #f87171;
-  --warn: #fbbf24;
+  --header-bg: rgba(9, 10, 15, 0.82);
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --glow-accent: rgba(56, 189, 248, 0.09);
+  --glow-success: rgba(52, 211, 153, 0.06);
 }
 
 * {
@@ -31,7 +104,6 @@ body,
 }
 
 html {
-  /* No gray flash on tap, no landscape font inflation, no page rubber band. */
   -webkit-tap-highlight-color: transparent;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
@@ -41,16 +113,16 @@ body {
   margin: 0;
   overscroll-behavior: none;
   background:
-    radial-gradient(900px 500px at 12% -10%, rgba(56, 189, 248, 0.09), transparent 60%),
-    radial-gradient(800px 500px at 90% 0%, rgba(52, 211, 153, 0.05), transparent 55%),
+    radial-gradient(900px 500px at 12% -10%, var(--glow-accent), transparent 60%),
+    radial-gradient(800px 500px at 90% 0%, var(--glow-success), transparent 55%),
     var(--canvas);
-  color: #e5e7eb;
+  color: var(--foreground);
   font-family: 'Inter', 'Geist Sans', 'Segoe UI', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: rgba(56, 189, 248, 0.32);
+  background: color-mix(in srgb, var(--primary) 32%, transparent);
 }
 
 /* Controls respond immediately and never select their label on long-press. */
@@ -97,30 +169,31 @@ select {
 /* Thin, unobtrusive scrollbars for data-dense panes. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.16);
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
   border-radius: 8px;
 }
 
 .glass {
-  background: rgba(17, 19, 27, 0.82);
+  background: var(--header-bg);
   backdrop-filter: blur(14px);
 }
 
 .grid-lines {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
 .status-dot {
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12), 0 0 12px rgba(52, 211, 153, 0.55);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 14%, transparent),
+    0 0 12px color-mix(in srgb, var(--success) 55%, transparent);
 }
 
 .flow-line {
@@ -204,6 +277,33 @@ select {
 @media (max-width: 639px) {
   .sd-dialog[data-state='open'] { animation: sd-sheet-in 240ms var(--ease-out) both; }
   .sd-dialog[data-state='closed'] { animation: sd-sheet-out 180ms var(--ease-out) both; }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Light theme: neutralise the translucent-white utilities the dark theme     */
+/* relies on (white-at-low-alpha is invisible on light surfaces).            */
+/* ------------------------------------------------------------------------- */
+
+:root:not(.dark) .bg-white\/\[0\.01\] { background-color: rgb(16 24 40 / 0.01) !important; }
+:root:not(.dark) .bg-white\/\[0\.02\] { background-color: rgb(16 24 40 / 0.02) !important; }
+:root:not(.dark) .bg-white\/\[0\.03\] { background-color: rgb(16 24 40 / 0.03) !important; }
+:root:not(.dark) .bg-white\/\[0\.04\] { background-color: rgb(16 24 40 / 0.04) !important; }
+:root:not(.dark) .bg-white\/\[0\.05\] { background-color: rgb(16 24 40 / 0.05) !important; }
+:root:not(.dark) .bg-white\/\[0\.06\] { background-color: rgb(16 24 40 / 0.06) !important; }
+:root:not(.dark) .bg-white\/\[0\.07\] { background-color: rgb(16 24 40 / 0.07) !important; }
+:root:not(.dark) .bg-white\/\[0\.08\] { background-color: rgb(16 24 40 / 0.08) !important; }
+:root:not(.dark) .bg-white\/\[0\.1\]  { background-color: rgb(16 24 40 / 0.1) !important; }
+:root:not(.dark) .bg-white\/\[0\.12\] { background-color: rgb(16 24 40 / 0.12) !important; }
+:root:not(.dark) .border-white\/\[0\.05\] { border-color: rgb(16 24 40 / 0.08) !important; }
+:root:not(.dark) .border-white\/\[0\.06\] { border-color: rgb(16 24 40 / 0.09) !important; }
+:root:not(.dark) .border-white\/\[0\.07\] { border-color: rgb(16 24 40 / 0.1) !important; }
+:root:not(.dark) .border-white\/\[0\.1\]  { border-color: rgb(16 24 40 / 0.14) !important; }
+:root:not(.dark) .border-white\/10 { border-color: rgb(16 24 40 / 0.14) !important; }
+:root:not(.dark) .border-white\/\[0\.12\] { border-color: rgb(16 24 40 / 0.16) !important; }
+:root:not(.dark) .divide-white\/\[0\.05\] > :not([hidden]) ~ :not([hidden]) { border-color: rgb(16 24 40 / 0.08) !important; }
+:root:not(.dark) .divide-white\/\[0\.05\] { border-color: rgb(16 24 40 / 0.08) !important; }
+:root:not(.dark) .shadow-\[0_1px_0_0_rgba\(255\,255\,255\,0\.03\)_inset\] {
+  box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.6) !important;
 }
 
 /* Fewer and gentler: keep the state legible, drop movement. */

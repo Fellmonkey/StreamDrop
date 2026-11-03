@@ -15,16 +15,19 @@ import { cn } from '@/lib/utils'
 /* -------------------------------------------------------------------------- */
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform,filter] duration-150 active:scale-[0.98] active:brightness-95 disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform,filter] duration-150 active:scale-[0.98] active:brightness-95 disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
   {
     variants: {
       variant: {
         primary:
-          'bg-gradient-to-b from-sky-400 to-sky-500 text-slate-950 shadow-[0_0_20px_-6px_rgba(56,189,248,0.65)] hover:from-sky-300 hover:to-sky-400',
-        secondary: 'bg-white/[0.06] text-slate-100 border border-white/10 hover:bg-white/[0.1]',
-        ghost: 'text-slate-300 hover:bg-white/[0.06] hover:text-slate-100',
-        danger: 'bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25',
-        outline: 'border border-white/15 bg-transparent text-slate-200 hover:bg-white/[0.06]',
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
+        secondary:
+          'bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80',
+        ghost: 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        danger:
+          'bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
+        outline:
+          'border border-input bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
       },
       size: {
         sm: 'h-8 px-3 text-xs',
@@ -52,46 +55,37 @@ Button.displayName = 'Button'
 /* Inputs                                                                      */
 /* -------------------------------------------------------------------------- */
 
+const fieldBase =
+  'w-full rounded-lg border border-input bg-background px-3 text-base text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-ring/70 focus:ring-2 focus:ring-ring/25 sm:text-sm'
+
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
-    <input
-      ref={ref}
-      className={cn(
-        'h-9 w-full rounded-lg border border-white/10 bg-black/30 px-3 text-base text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/20 sm:text-sm',
-        className,
-      )}
-      {...props}
-    />
+    <input ref={ref} className={cn(fieldBase, 'h-9', className)} {...props} />
   ),
 )
 Input.displayName = 'Input'
 
 export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
   ({ className, ...props }, ref) => (
-    <textarea
-      ref={ref}
-      className={cn(
-        'w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-base text-slate-100 placeholder:text-slate-500 outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/20 sm:text-sm',
-        className,
-      )}
-      {...props}
-    />
+    <textarea ref={ref} className={cn(fieldBase, 'py-2', className)} {...props} />
   ),
 )
 Textarea.displayName = 'Textarea'
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn('text-xs font-medium uppercase tracking-wide text-slate-400', className)} {...props} />
+  return (
+    <label
+      className={cn('text-xs font-medium uppercase tracking-wide text-muted-foreground', className)}
+      {...props}
+    />
+  )
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
   ({ className, children, ...props }, ref) => (
     <select
       ref={ref}
-      className={cn(
-        'h-9 w-full appearance-none rounded-lg border border-white/10 bg-black/30 px-3 pr-8 text-base text-slate-100 outline-none transition-colors focus:border-accent/60 focus:ring-2 focus:ring-accent/20 sm:text-sm',
-        className,
-      )}
+      className={cn(fieldBase, 'h-9 appearance-none pr-8', className)}
       {...props}
     >
       {children}
@@ -108,7 +102,7 @@ export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/[0.07] bg-surface/80 shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset] transition-colors duration-200 hover:border-white/[0.12]',
+        'rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-colors duration-200 hover:border-foreground/10',
         className,
       )}
       {...props}
@@ -121,7 +115,7 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-sm font-semibold tracking-tight text-slate-100', className)} {...props} />
+  return <h3 className={cn('text-sm font-semibold tracking-tight text-foreground', className)} {...props} />
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -134,12 +128,12 @@ export function Badge({
   ...props
 }: React.HTMLAttributes<HTMLSpanElement> & { tone?: 'neutral' | 'accent' | 'success' | 'warn' | 'danger' | 'muted' }) {
   const tones: Record<string, string> = {
-    neutral: 'border-white/10 bg-white/[0.05] text-slate-300',
-    accent: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
-    success: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    warn: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-    danger: 'border-red-400/30 bg-red-400/10 text-red-300',
-    muted: 'border-white/5 bg-white/[0.02] text-slate-500',
+    neutral: 'border-border bg-muted text-muted-foreground',
+    accent: 'border-primary/30 bg-primary/10 text-primary',
+    success: 'border-success/30 bg-success/10 text-success',
+    warn: 'border-warn/30 bg-warn/10 text-warn',
+    danger: 'border-destructive/30 bg-destructive/10 text-destructive',
+    muted: 'border-border/60 bg-muted/50 text-muted-foreground',
   }
   return (
     <span
@@ -154,13 +148,13 @@ export function Badge({
 }
 
 export function Separator({ className, ...props }: React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>) {
-  return <SeparatorPrimitive.Root className={cn('h-px w-full bg-white/[0.07]', className)} {...props} />
+  return <SeparatorPrimitive.Root className={cn('h-px w-full bg-border', className)} {...props} />
 }
 
 export function Progress({ value, className, tone = 'accent' }: { value: number; className?: string; tone?: 'accent' | 'success' | 'warn' }) {
-  const tones = { accent: 'bg-sky-400', success: 'bg-emerald-400', warn: 'bg-amber-400' }
+  const tones = { accent: 'bg-primary', success: 'bg-success', warn: 'bg-warn' }
   return (
-    <div className={cn('h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]', className)}>
+    <div className={cn('h-1.5 w-full overflow-hidden rounded-full bg-muted', className)}>
       <div
         className={cn(
           'h-full origin-left rounded-full transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
@@ -173,7 +167,7 @@ export function Progress({ value, className, tone = 'accent' }: { value: number;
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('animate-pulse rounded-md bg-white/[0.06]', className)} />
+  return <div className={cn('animate-pulse rounded-md bg-muted', className)} />
 }
 
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
@@ -185,13 +179,13 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative h-5 w-9 shrink-0 rounded-full border transition-colors',
-        checked ? 'border-sky-400/50 bg-sky-400/80' : 'border-white/10 bg-white/[0.08]',
+        'relative h-5 w-9 shrink-0 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+        checked ? 'border-primary bg-primary' : 'border-input bg-input',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white transition-transform',
+          'absolute top-0.5 h-3.5 w-3.5 rounded-full bg-background shadow-sm transition-transform',
           checked ? 'translate-x-[18px]' : 'translate-x-0.5',
         )}
       />
@@ -225,10 +219,10 @@ export function Slider({
       step={step}
       onValueChange={(v) => onValueChange(v[0])}
     >
-      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-white/10">
-        <SliderPrimitive.Range className="absolute h-full bg-sky-400/80" />
+      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-input">
+        <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb className="block h-3.5 w-3.5 rounded-full border border-sky-300/60 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)] focus:outline-none" />
+      <SliderPrimitive.Thumb className="block h-3.5 w-3.5 rounded-full border border-primary bg-background shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" />
     </SliderPrimitive.Root>
   )
 }
@@ -238,7 +232,7 @@ export const Tabs = TabsPrimitive.Root
 export function TabsList({ className, ...props }: React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
-      className={cn('inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/30 p-1', className)}
+      className={cn('inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-1', className)}
       {...props}
     />
   )
@@ -248,7 +242,7 @@ export function TabsTrigger({ className, ...props }: React.ComponentPropsWithout
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        'rounded-md px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors data-[state=active]:bg-white/[0.08] data-[state=active]:text-slate-100',
+        'rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm',
         className,
       )}
       {...props}
@@ -270,10 +264,10 @@ export function Tooltip({ children, content }: { children: React.ReactNode; cont
         <TooltipPrimitive.Content
           sideOffset={8}
           style={{ transformOrigin: 'var(--radix-tooltip-content-transform-origin)' }}
-          className="sd-pop z-50 max-w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-white/10 bg-elevated/95 px-3 py-2 text-xs text-slate-300 shadow-2xl backdrop-blur-md"
+          className="sd-pop z-50 max-w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-xl backdrop-blur-md"
         >
           {content}
-          <TooltipPrimitive.Arrow className="fill-elevated" />
+          <TooltipPrimitive.Arrow className="fill-popover" />
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>
@@ -325,19 +319,19 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="sd-overlay fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" />
       <DialogPrimitive.Content
         className={cn(
-          'sd-dialog fixed left-1/2 top-1/2 z-50 max-h-[88dvh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#0d0f16]/95 shadow-2xl backdrop-blur-xl focus:outline-none max-sm:bottom-0 max-sm:left-0 max-sm:top-auto max-sm:max-h-[92dvh] max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none',
+          'sd-dialog fixed left-1/2 top-1/2 z-50 max-h-[88dvh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-xl focus:outline-none max-sm:bottom-0 max-sm:left-0 max-sm:top-auto max-sm:max-h-[92dvh] max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none',
           wide ? 'max-w-4xl' : 'max-w-lg',
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/[0.07] px-5 py-4">
+        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div>
-            <DialogPrimitive.Title className="text-sm font-semibold text-slate-100">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="text-sm font-semibold text-foreground">{title}</DialogPrimitive.Title>
             {description && (
-              <DialogPrimitive.Description className="mt-1 text-xs text-slate-500">{description}</DialogPrimitive.Description>
+              <DialogPrimitive.Description className="mt-1 text-xs text-muted-foreground">{description}</DialogPrimitive.Description>
             )}
           </div>
-          <DialogPrimitive.Close className="rounded-md p-1 text-slate-500 transition-colors hover:bg-white/[0.06] hover:text-slate-200">
+          <DialogPrimitive.Close className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>
         </div>
@@ -364,13 +358,13 @@ export function SheetContent({
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="sd-overlay fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" />
-      <DialogPrimitive.Content className="sd-sheet scroll-contain fixed right-0 top-0 z-50 h-[100dvh] w-[min(440px,100vw)] overflow-y-auto border-l border-white/10 bg-[#0d0f16]/95 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-[max(1.25rem,env(safe-area-inset-top,0px))] shadow-2xl backdrop-blur-xl focus:outline-none">
+      <DialogPrimitive.Content className="sd-sheet scroll-contain fixed right-0 top-0 z-50 h-[100dvh] w-[min(440px,100vw)] overflow-y-auto border-l border-border bg-card p-5 text-card-foreground pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] pt-[max(1.25rem,env(safe-area-inset-top,0px))] shadow-2xl backdrop-blur-xl focus:outline-none">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <DialogPrimitive.Title className="text-sm font-semibold text-slate-100">{title}</DialogPrimitive.Title>
-            {description && <DialogPrimitive.Description className="mt-1 text-xs text-slate-500">{description}</DialogPrimitive.Description>}
+            <DialogPrimitive.Title className="text-sm font-semibold text-foreground">{title}</DialogPrimitive.Title>
+            {description && <DialogPrimitive.Description className="mt-1 text-xs text-muted-foreground">{description}</DialogPrimitive.Description>}
           </div>
-          <DialogPrimitive.Close className="rounded-md p-1 text-slate-500 hover:bg-white/[0.06] hover:text-slate-200">
+          <DialogPrimitive.Close className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground">
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>
         </div>
@@ -393,7 +387,7 @@ export function DropdownMenuContent({ children }: { children: React.ReactNode })
       <DropdownPrimitive.Content
         sideOffset={6}
         style={{ transformOrigin: 'var(--radix-dropdown-menu-content-transform-origin)' }}
-        className="sd-pop scroll-contain z-50 max-h-[60dvh] min-w-[180px] overflow-y-auto rounded-xl border border-white/10 bg-elevated/95 p-1 text-xs text-slate-300 shadow-2xl backdrop-blur-md"
+        className="sd-pop z-50 scroll-contain max-h-[60dvh] min-w-[180px] overflow-y-auto rounded-xl border border-border bg-popover p-1 text-xs text-popover-foreground shadow-xl backdrop-blur-md"
       >
         {children}
       </DropdownPrimitive.Content>
@@ -417,8 +411,8 @@ export function DropdownMenuItem({
       disabled={disabled}
       onSelect={onSelect}
       className={cn(
-        'cursor-pointer select-none rounded-lg px-2.5 py-1.5 outline-none transition-colors data-[highlighted]:bg-white/[0.07]',
-        danger ? 'text-red-300' : 'text-slate-300',
+        'cursor-pointer select-none rounded-lg px-2.5 py-1.5 outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+        danger ? 'text-destructive' : 'text-popover-foreground',
         disabled && 'cursor-not-allowed opacity-40',
       )}
     >
@@ -440,9 +434,9 @@ export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTab
 }
 
 export function THead({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('[&_th]:h-9 [&_th]:px-3 [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-slate-500', className)} {...props} />
+  return <thead className={cn('[&_th]:h-9 [&_th]:px-3 [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground', className)} {...props} />
 }
 
 export function TBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('[&_td]:px-3 [&_td]:py-2.5 [&_tr]:border-t [&_tr]:border-white/[0.05]', className)} {...props} />
+  return <tbody className={cn('[&_td]:px-3 [&_td]:py-2.5 [&_tr]:border-t [&_tr]:border-border', className)} {...props} />
 }

@@ -38,7 +38,7 @@ export function ConfirmDialog({
           <motion.div
             role="dialog"
             aria-modal="true"
-            className="absolute left-1/2 top-1/2 w-full max-w-sm rounded-2xl border border-white/10 bg-[#0d0f16] p-5 shadow-2xl"
+            className="absolute left-1/2 top-1/2 w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-2xl"
             initial={{ opacity: 0, x: '-50%', y: '-50%', scale: 0.96 }}
             animate={{ opacity: 1, x: '-50%', y: '-50%', scale: 1 }}
             exit={{ opacity: 0, x: '-50%', y: '-50%', scale: 0.98 }}

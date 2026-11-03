@@ -1,18 +1,26 @@
 <!doctype html>
-<html lang="ru" class="dark">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#090a0f" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090a0f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="format-detection" content="telephone=no" />
     <title>StreamDrop</title>
+    <script>
+      try {
+        var t = localStorage.getItem('streamdrop.theme') || 'dark'
+        document.documentElement.classList.toggle('dark', t === 'dark')
+      } catch (e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

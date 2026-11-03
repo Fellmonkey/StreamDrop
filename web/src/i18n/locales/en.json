@@ -332,6 +332,8 @@
     "bwDown": "Ingress limit, Mbit/s",
     "bwUp": "Egress limit, Mbit/s",
     "locale": "Interface language",
+    "theme": "Dark theme",
+    "themeHint": "Switches instantly and persists for the next launch",
     "toast": "System notifications",
     "telegram": "Telegram",
     "telegramToken": "Bot token",

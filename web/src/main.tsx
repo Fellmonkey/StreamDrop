@@ -8,6 +8,9 @@ import './index.css'
 import App from './App'
 import { TooltipProvider } from '@/components/ui/primitives'
 import { EASE_OUT } from '@/lib/motion'
+import { applyTheme, readTheme } from '@/lib/theme'
+
+applyTheme(readTheme())
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +22,8 @@ const queryClient = new QueryClient({
   },
 })
 
+const theme = readTheme()
+
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
@@ -26,13 +31,13 @@ createRoot(document.getElementById('root') as HTMLElement).render(
         <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: EASE_OUT }}>
           <App />
           <Toaster
-            theme="dark"
+            theme={theme}
             position="bottom-right"
             toastOptions={{
               style: {
-                background: '#11131b',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#e5e7eb',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                color: 'var(--card-foreground)',
               },
             }}
           />

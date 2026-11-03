@@ -6,6 +6,7 @@ import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, ShieldCheck, S
 import type { Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
+import { applyTheme, readTheme, type Theme } from '@/lib/theme'
 import {
   Badge,
   Button,
@@ -77,6 +78,7 @@ export function SettingsDialog({
   const [checking, setChecking] = useState(false)
   const [telegramToken, setTelegramToken] = useState('')
   const [telegramChat, setTelegramChat] = useState('')
+  const [theme, setTheme] = useState<Theme>(readTheme)
 
   const save = useMutation({
     mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
@@ -340,6 +342,16 @@ export function SettingsDialog({
           <TabsContent value="interface" className="space-y-4">
             <Row label={t('settings.locale')}>
               <LanguageSwitcher />
+            </Row>
+            <Row label={t('settings.theme')} hint={t('settings.themeHint')}>
+              <Switch
+                checked={theme === 'dark'}
+                onChange={(dark) => {
+                  const next: Theme = dark ? 'dark' : 'light'
+                  applyTheme(next)
+                  setTheme(next)
+                }}
+              />
             </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>
           </TabsContent>
