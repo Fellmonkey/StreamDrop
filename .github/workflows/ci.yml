@@ -49,6 +49,19 @@ jobs:
       - name: Contract tests (vitest)
         run: npm test
 
+  lint:
+    name: Lint (golangci-lint v2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.15.0
+          args: run ./...
+
   matrix-build:
     name: Cross-compile (${{ matrix.os }}/${{ matrix.arch }})
     runs-on: ubuntu-latest

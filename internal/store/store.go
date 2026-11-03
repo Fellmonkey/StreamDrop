@@ -431,8 +431,6 @@ func (s *Store) DeleteAuthProfile(id string) error {
 	return err
 }
 
-func (s *Store) encryptHeaders(h ProfileHeaders) ([]byte, error) { return s.encryptJSON(h) }
-
 func (s *Store) decryptHeaders(blob []byte) (ProfileHeaders, error) {
 	var h ProfileHeaders
 	if len(blob) == 0 {

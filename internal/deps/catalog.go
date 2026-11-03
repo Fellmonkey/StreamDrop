@@ -31,9 +31,6 @@ type Component struct {
 	SizeBytes int64    `json:"size_bytes"`
 	Required  bool     `json:"required"`
 	Platforms []string `json:"platforms"`
-
-	// URLs per OS/arch. The catalog is the only source of pinned checksums.
-	urls map[string]string
 }
 
 // Version pins. They are updated together with the checksums.

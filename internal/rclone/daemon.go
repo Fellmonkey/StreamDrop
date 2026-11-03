@@ -4,7 +4,6 @@ import (
 	"context"
 	"os/exec"
 	"runtime"
-	"sync"
 	"time"
 
 	"streamdrop/internal/apierr"
@@ -16,7 +15,6 @@ const DaemonPort = 5572
 
 // Daemon is the background rclone rcd process.
 type Daemon struct {
-	mu     sync.Mutex
 	cmd    *exec.Cmd
 	pg     engine.ProcessGroup
 	client *Client
@@ -144,5 +142,3 @@ func (w logWriter) Write(p []byte) (int, error) {
 	}
 	return len(p), nil
 }
-
-var _ = sync.Mutex{}

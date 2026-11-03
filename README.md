@@ -57,6 +57,11 @@ cd web && npm ci && npm run build && cd ..
 go build -trimpath -ldflags "-s -w -H=windowsgui" -o bin/streamdrop.exe ./cmd/streamdrop
 ```
 
+Иконка Windows-приложения встраивается через ресурс-файл
+`cmd/streamdrop/rsrc_windows_amd64.syso` (генерируется `rsrc -ico
+internal/assets/icon.ico -o cmd/streamdrop/rsrc_windows_amd64.syso`); при
+смене логотипа пересоберите его перед `go build`.
+
 Фронтенд обязан собираться **до** `go build`: `web/embed.go` встраивает
 `web/dist` через `go:embed`.
 

@@ -54,11 +54,11 @@ type Handler struct {
 	OpenBrowser func() error
 	// OpenApp opens/refocuses the desktop-style app window.
 	OpenApp func() error
-	Version      string
-	Port         int
-	DataDir      string
-	Started      time.Time
-	Log          *logging.Logger
+	Version string
+	Port    int
+	DataDir string
+	Started time.Time
+	Log     *logging.Logger
 }
 
 // ---------------------------------------------------------------------------
@@ -89,17 +89,9 @@ func decodeJSON(r *http.Request, dst any) error {
 	return nil
 }
 
-func (h *Handler) logf(format string, args ...any) {
-	if h.Log != nil {
-		h.Log.Info(format, args...)
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Status, stats, templates
-// ---------------------------------------------------------------------------
-
-// Status implements GET /api/v1/status.
+// ---------------------------------------------------------------------------// Status implements GET /api/v1/status.
 func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 	active, _ := h.Store.ActiveTransfers()
 	installed, total := 0, 0

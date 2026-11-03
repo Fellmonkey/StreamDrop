@@ -21,7 +21,7 @@ import {
 import { ErrorText } from '@/components/common/StatusBadge'
 import { cn } from '@/lib/utils'
 
-type AccessKind = 'password' | 'keys' | 'host' | 'oauth' | 'token'
+type AccessKind = 'password' | 'keys' | 'host' | 'oauth' | 'token' | 'oauth_or_token'
 
 interface ProviderSpec {
   id: string
@@ -32,7 +32,7 @@ interface ProviderSpec {
 
 const PROVIDERS: ProviderSpec[] = [
   { id: 'mailru', access: 'password', needsURL: true },
-  { id: 'yandex', access: 'token' },
+  { id: 'yandex', access: 'oauth_or_token' },
   { id: 'drive', access: 'oauth' },
   { id: 'onedrive', access: 'oauth' },
   { id: 's3', access: 'keys' },
@@ -78,6 +78,7 @@ export function AddCloudWizard({
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
   const [verifyState, setVerifyState] = useState<'idle' | 'ok' | 'failed'>('idle')
+  const [yMethod, setYMethod] = useState<'oauth' | 'token'>('oauth')
 
   const oauth = useOAuth(() => setVerifyState('ok'))
 
@@ -93,7 +94,8 @@ export function AddCloudWizard({
     () => (providers.data ?? []).find((p) => p.id === providerId),
     [providers.data, providerId],
   )
-  const access: AccessKind = spec?.access === 'oauth' && !oauthProvider ? 'token' : spec?.access ?? 'password'
+  const access: AccessKind =
+    spec?.access === 'oauth_or_token' ? yMethod : spec?.access ?? 'password'
 
   useEffect(() => {
     if (!open) return
@@ -113,6 +115,7 @@ export function AddCloudWizard({
     setClientId('')
     setClientSecret('')
     setVerifyState('idle')
+    setYMethod('oauth')
     oauth.reset()
   }, [open])
 
@@ -126,7 +129,7 @@ export function AddCloudWizard({
       out.url = url
       out.user = user
       out.pass = pass
-    } else if (providerId === 'yandex') {
+    } else if (providerId === 'yandex' && access === 'token') {
       out.token = token
     } else if (providerId === 's3') {
       out.access_key_id = accessKey
@@ -283,6 +286,29 @@ export function AddCloudWizard({
                 </Badge>
               </div>
 
+              {spec?.access === 'oauth_or_token' ? (
+                <div className="flex rounded-lg border border-border bg-muted p-1">
+                  <button
+                    type="button"
+                    onClick={() => setYMethod('oauth')}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                      yMethod === 'oauth' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('connections.yandexMethodOAuth')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setYMethod('token')}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors ${
+                      yMethod === 'token' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {t('connections.yandexMethodToken')}
+                  </button>
+                </div>
+              ) : null}
+
               {access === 'oauth' ? (
                 <div className="space-y-3">
                   <p className="text-[11px] leading-relaxed text-slate-400">{t('connections.clientHint')}</p>
@@ -302,6 +328,14 @@ export function AddCloudWizard({
                         />
                       </div>
                     </div>
+                  ) : null}
+                  {oauth.blocked && oauth.authUrl ? (
+                    <p className="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2 text-[11px] leading-relaxed text-warn">
+                      {t('connections.oauthBlocked')}{' '}
+                      <a href={oauth.authUrl} target="_blank" rel="noreferrer" className="underline">
+                        {t('connections.oauthOpenLink')}
+                      </a>
+                    </p>
                   ) : null}
                   <Button
                     variant="primary"
@@ -334,10 +368,26 @@ export function AddCloudWizard({
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {access === 'token' ? (
-                    <div className="space-y-1 sm:col-span-2">
-                      <Label>OAuth token</Label>
-                      <Input value={token} onChange={(e) => setToken(e.target.value)} className="h-8 font-mono text-xs" />
-                    </div>
+                    <>
+                      <div className="space-y-1 sm:col-span-2">
+                        <Label>OAuth token</Label>
+                        <Input value={token} onChange={(e) => setToken(e.target.value)} className="h-8 font-mono text-xs" />
+                      </div>
+                      <div className="space-y-1 sm:col-span-2 rounded-lg border border-border bg-muted/50 px-2.5 py-2">
+                        <p className="text-[11px] leading-relaxed text-slate-400">{t('connections.yandexTokenHint')}</p>
+                        <p className="text-[10px] leading-relaxed text-slate-500">
+                          {t('connections.yandexDocs')}{' '}
+                          <a
+                            href="https://yandex.ru/dev/disk/api/concepts/apps.html"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sky-300 hover:text-sky-200"
+                          >
+                            yandex.ru/dev/disk
+                          </a>
+                        </p>
+                      </div>
+                    </>
                   ) : null}
 
                   {access === 'keys' ? (

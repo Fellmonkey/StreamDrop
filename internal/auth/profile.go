@@ -2,9 +2,7 @@ package auth
 
 import (
 	"errors"
-	"os"
 	"runtime"
-	"strings"
 )
 
 // BrowserKind identifies a supported browser.
@@ -100,23 +98,4 @@ func CookieHeaderFor(p Profile, host string) (string, error) {
 		}
 	}
 	return "", nil
-}
-
-// browserUserAgent returns the pinned Chrome UA string. It is used as a
-// fallback so protected sources do not reject requests from unknown clients.
-func browserUserAgent(kind BrowserKind) string {
-	switch kind {
-	case BrowserFirefox:
-		return "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0"
-	default:
-		return DefaultUserAgent
-	}
-}
-
-func readFileTrim(path string) string {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(b))
 }
