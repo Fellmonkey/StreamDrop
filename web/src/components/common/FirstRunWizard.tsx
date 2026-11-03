@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -87,6 +87,29 @@ export function FirstRunWizard({
       void queryClient.invalidateQueries({ queryKey: ['status'] })
     }
   }
+
+  // Fresh installs install the missing required components automatically; the
+  // daemon starts in the background via the backend after rclone lands.
+  const [autoStarted, setAutoStarted] = useState(false)
+  useEffect(() => {
+    if (!open || autoStarted || !hasDepsStep) return
+    const missingIds = missingRequired.map((d) => d.id)
+    if (missingIds.length === 0) return
+    setAutoStarted(true)
+    void (async () => {
+      for (const id of missingIds) {
+        setInstalling(id)
+        try {
+          await api.installDep(id)
+        } catch {
+          /* leave the row for manual retry */
+        }
+      }
+      setInstalling('')
+      queryClient.invalidateQueries({ queryKey: ['deps'] })
+      queryClient.invalidateQueries({ queryKey: ['status'] })
+    })()
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,8 +203,9 @@ export function FirstRunWizard({
                   variant="secondary"
                   size="sm"
                   onClick={() => {
+                    // Open the connections panel without leaving the step, so
+                    // the user can finish onboarding after adding a cloud.
                     onOpenConnections()
-                    changeStep(step + 1)
                   }}
                 >
                   {t('onboarding.openConnections')}

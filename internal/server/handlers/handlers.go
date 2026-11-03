@@ -47,11 +47,14 @@ type Handler struct {
 	Hub         *ws.Hub
 	Snapshot    func() any
 	Settings    func() transfer.Settings
-	Version     string
-	Port        int
-	DataDir     string
-	Started     time.Time
-	Log         *logging.Logger
+	// EnsureDaemon starts the rclone RC daemon after rclone is installed at
+	// runtime, so a fresh install never needs a manual restart.
+	EnsureDaemon func() error
+	Version      string
+	Port         int
+	DataDir      string
+	Started      time.Time
+	Log          *logging.Logger
 }
 
 // ---------------------------------------------------------------------------

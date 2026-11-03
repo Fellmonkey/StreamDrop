@@ -11,7 +11,7 @@ test.describe('Accessibility & responsive', () => {
 
     await page.getByLabel('Настройки').click()
     await expect(page.getByRole('dialog').filter({ hasText: 'Настройки' })).toBeVisible()
-    await page.getByRole('button', { name: 'Закрыть' }).click()
+    await page.keyboard.press('Escape')
 
     await page.getByLabel('Подключения').click()
     await expect(page.getByRole('dialog').filter({ hasText: 'Подключения' })).toBeVisible()

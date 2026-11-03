@@ -282,7 +282,7 @@
     "requiredBanner": "Without rclone streaming cannot start. Download the component to continue.",
     "verified": "Verified by SHA-256",
     "unverified": "Checksum is not pinned",
-    "restartHint": "If rclone was installed after startup, restart the app for the RC daemon.",
+    "restartHint": "The RC daemon restarts automatically after rclone is installed.",
     "purpose_rclone": "Cloud upload, folder explorer and quota",
     "purpose_yt-dlp": "Download page and media link resolution",
     "purpose_curl": "Direct HTTP streaming and HEAD probes"

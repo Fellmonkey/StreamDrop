@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -50,39 +50,7 @@ const THIRD_PARTY: { name: string; license: string; url: string }[] = [
   { name: 'golang.org/x/crypto & x/sys', license: 'BSD-3-Clause', url: 'https://pkg.go.dev/golang.org/x/crypto' },
 ]
 
-interface Draft {
-  parallel_limit: number
-  default_mode: string
-  default_buffer_mib: number
-  retry_max_attempts: number
-  checksum_enabled: boolean
-  bandwidth_down_mbps: number
-  bandwidth_up_mbps: number
-  notifications_toast: boolean
-  telegram_enabled: boolean
-  telegram_token: string
-  telegram_chat_id: string
-  crash_reporting_enabled: boolean
-}
-
-function toDraft(settings?: Settings): Draft {
-  return {
-    parallel_limit: Number(settings?.parallel_limit ?? 1) || 1,
-    default_mode: settings?.default_mode === 'pure_stream' ? 'pure_stream' : 'ring_buffer',
-    default_buffer_mib: Math.round(Number(settings?.default_buffer_bytes ?? 128 * MIB) / MIB) || 128,
-    retry_max_attempts: Number(settings?.retry_max_attempts ?? 3),
-    checksum_enabled: settings?.checksum_enabled === '1',
-    bandwidth_down_mbps: Math.round(Number(settings?.bandwidth_down_bps ?? 0) / MBPS),
-    bandwidth_up_mbps: Math.round(Number(settings?.bandwidth_up_bps ?? 0) / MBPS),
-    notifications_toast: settings?.notifications_toast !== '0',
-    telegram_enabled: settings?.telegram_enabled === '1',
-    telegram_token: '',
-    telegram_chat_id: '',
-    crash_reporting_enabled: settings?.crash_reporting_enabled === '1',
-  }
-}
-
-/** SettingsDialog edits the persisted configuration by tab. */
+/** SettingsDialog edits persisted configuration. Changes apply immediately. */
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -96,7 +64,6 @@ export function SettingsDialog({
 }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const [draft, setDraft] = useState<Draft>(() => toDraft(settings))
   const [updateInfo, setUpdateInfo] = useState<{
     available: boolean
     current_version: string
@@ -108,32 +75,12 @@ export function SettingsDialog({
     error_code?: string
   } | null>(null)
   const [checking, setChecking] = useState(false)
-
-  useEffect(() => {
-    if (open) setDraft(toDraft(settings))
-  }, [open, settings])
+  const [telegramToken, setTelegramToken] = useState('')
+  const [telegramChat, setTelegramChat] = useState('')
 
   const save = useMutation({
-    mutationFn: () => {
-      const payload: Record<string, string | number | boolean> = {
-        parallel_limit: draft.parallel_limit,
-        default_mode: draft.default_mode,
-        default_buffer_bytes: draft.default_buffer_mib * MIB,
-        retry_max_attempts: draft.retry_max_attempts,
-        checksum_enabled: draft.checksum_enabled,
-        bandwidth_down_bps: draft.bandwidth_down_mbps * MBPS,
-        bandwidth_up_bps: draft.bandwidth_up_mbps * MBPS,
-        notifications_toast: draft.notifications_toast,
-        telegram_enabled: draft.telegram_enabled,
-        crash_reporting_enabled: draft.crash_reporting_enabled,
-      }
-      if (draft.telegram_token.trim()) payload.telegram_token = draft.telegram_token.trim()
-      if (draft.telegram_chat_id.trim()) payload.telegram_chat_id = draft.telegram_chat_id.trim()
-      return api.updateSettings(payload)
-    },
+    mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
     onSuccess: () => {
-      toast.success(t('settings.saved'))
-      setDraft((d) => ({ ...d, telegram_token: '', telegram_chat_id: '' }))
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
       void queryClient.invalidateQueries({ queryKey: ['status'] })
       void queryClient.invalidateQueries({ queryKey: ['queue'] })
@@ -166,6 +113,17 @@ export function SettingsDialog({
       setUpdateInfo({ available: false, current_version: status?.version ?? '' })
     } finally {
       setChecking(false)
+    }
+  }
+
+  const saveTelegram = () => {
+    const patch: Record<string, string> = {}
+    if (telegramToken.trim()) patch.telegram_token = telegramToken.trim()
+    if (telegramChat.trim()) patch.telegram_chat_id = telegramChat.trim()
+    if (Object.keys(patch).length) {
+      save.mutate(patch)
+      setTelegramToken('')
+      setTelegramChat('')
     }
   }
 
@@ -208,8 +166,8 @@ export function SettingsDialog({
             <Row label={t('settings.parallel')} hint="1–5">
               <Select
                 className="w-24"
-                value={draft.parallel_limit}
-                onChange={(e) => setDraft({ ...draft, parallel_limit: Number(e.target.value) })}
+                value={settings?.parallel_limit ?? '1'}
+                onChange={(e) => save.mutate({ parallel_limit: Number(e.target.value) })}
               >
                 {[1, 2, 3, 4, 5].map((n) => (
                   <option key={n} value={n}>
@@ -224,8 +182,8 @@ export function SettingsDialog({
                 min={0}
                 max={10}
                 className="w-24"
-                value={draft.retry_max_attempts}
-                onChange={(e) => setDraft({ ...draft, retry_max_attempts: Number(e.target.value) })}
+                value={settings?.retry_max_attempts ?? '3'}
+                onChange={(e) => save.mutate({ retry_max_attempts: Number(e.target.value) })}
               />
             </Row>
           </TabsContent>
@@ -234,8 +192,8 @@ export function SettingsDialog({
             <Row label={t('settings.defaultMode')}>
               <Select
                 className="w-44"
-                value={draft.default_mode}
-                onChange={(e) => setDraft({ ...draft, default_mode: e.target.value })}
+                value={settings?.default_mode ?? 'ring_buffer'}
+                onChange={(e) => save.mutate({ default_mode: e.target.value })}
               >
                 <option value="ring_buffer">{t('stream.modeRing')}</option>
                 <option value="pure_stream">{t('stream.modePure')}</option>
@@ -244,11 +202,11 @@ export function SettingsDialog({
             <Row label={t('settings.defaultBuffer')}>
               <Select
                 className="w-28"
-                value={draft.default_buffer_mib}
-                onChange={(e) => setDraft({ ...draft, default_buffer_mib: Number(e.target.value) })}
+                value={settings?.default_buffer_bytes ?? String(128 * MIB)}
+                onChange={(e) => save.mutate({ default_buffer_bytes: Number(e.target.value) })}
               >
                 {BUFFERS.map((size) => (
-                  <option key={size} value={size}>
+                  <option key={size} value={size * MIB}>
                     {size} MiB
                   </option>
                 ))}
@@ -259,8 +217,8 @@ export function SettingsDialog({
                 type="number"
                 min={0}
                 className="w-28"
-                value={draft.bandwidth_down_mbps}
-                onChange={(e) => setDraft({ ...draft, bandwidth_down_mbps: Math.max(0, Number(e.target.value) || 0) })}
+                value={settings?.bandwidth_down_bps ?? '0'}
+                onChange={(e) => save.mutate({ bandwidth_down_bps: Math.max(0, Number(e.target.value) || 0) * MBPS })}
               />
             </Row>
             <Row label={t('settings.bwUp')}>
@@ -268,26 +226,29 @@ export function SettingsDialog({
                 type="number"
                 min={0}
                 className="w-28"
-                value={draft.bandwidth_up_mbps}
-                onChange={(e) => setDraft({ ...draft, bandwidth_up_mbps: Math.max(0, Number(e.target.value) || 0) })}
+                value={settings?.bandwidth_up_bps ?? '0'}
+                onChange={(e) => save.mutate({ bandwidth_up_bps: Math.max(0, Number(e.target.value) || 0) * MBPS })}
               />
             </Row>
             <Row label={t('settings.checksum')} hint={t('settings.checksumHint')}>
-              <Switch checked={draft.checksum_enabled} onChange={(v) => setDraft({ ...draft, checksum_enabled: v })} />
+              <Switch
+                checked={settings?.checksum_enabled === '1'}
+                onChange={(v) => save.mutate({ checksum_enabled: v ? '1' : '0' })}
+              />
             </Row>
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-4">
             <Row label={t('settings.toast')}>
               <Switch
-                checked={draft.notifications_toast}
-                onChange={(v) => setDraft({ ...draft, notifications_toast: v })}
+                checked={settings?.notifications_toast !== '0'}
+                onChange={(v) => save.mutate({ notifications_toast: v ? '1' : '0' })}
               />
             </Row>
             <Row label={t('settings.telegram')}>
               <Switch
-                checked={draft.telegram_enabled}
-                onChange={(v) => setDraft({ ...draft, telegram_enabled: v })}
+                checked={settings?.telegram_enabled === '1'}
+                onChange={(v) => save.mutate({ telegram_enabled: v ? '1' : '0' })}
               />
             </Row>
             <div className="space-y-2">
@@ -295,27 +256,27 @@ export function SettingsDialog({
               <Input
                 type="password"
                 autoComplete="off"
-                value={draft.telegram_token}
-                onChange={(e) => setDraft({ ...draft, telegram_token: e.target.value })}
+                value={telegramToken}
+                onChange={(e) => setTelegramToken(e.target.value)}
                 placeholder={settings?.has_telegram_token === '1' ? '••••••••' : ''}
                 className="font-mono text-xs"
               />
               <Label>{t('settings.telegramChat')}</Label>
               <Input
-                value={draft.telegram_chat_id}
-                onChange={(e) => setDraft({ ...draft, telegram_chat_id: e.target.value })}
+                value={telegramChat}
+                onChange={(e) => setTelegramChat(e.target.value)}
                 className="font-mono text-xs"
               />
+              <div className="flex items-center gap-2 pt-1">
+                <Button size="sm" variant="secondary" disabled={save.isPending} onClick={saveTelegram}>
+                  <Send className="h-3.5 w-3.5" />
+                  {t('common.save')}
+                </Button>
+                <Button size="sm" variant="ghost" disabled={testNotification.isPending} onClick={() => testNotification.mutate()}>
+                  {t('settings.testNotification')}
+                </Button>
+              </div>
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={testNotification.isPending}
-              onClick={() => testNotification.mutate()}
-            >
-              <Send className="h-3.5 w-3.5" />
-              {t('settings.testNotification')}
-            </Button>
           </TabsContent>
 
           <TabsContent value="update" className="space-y-3">
@@ -365,8 +326,8 @@ export function SettingsDialog({
             </Row>
             <Row label={t('settings.crash')} hint={t('settings.crashHint')}>
               <Switch
-                checked={draft.crash_reporting_enabled}
-                onChange={(v) => setDraft({ ...draft, crash_reporting_enabled: v })}
+                checked={settings?.crash_reporting_enabled === '1'}
+                onChange={(v) => save.mutate({ crash_reporting_enabled: v ? '1' : '0' })}
               />
             </Row>
             <Row label={t('header.uptime')}>
@@ -406,17 +367,11 @@ export function SettingsDialog({
           </TabsContent>
         </Tabs>
 
-        <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/[0.07] pt-3">
-          <ErrorText code={save.error instanceof ApiError ? save.error.code : null} />
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-              {t('common.close')}
-            </Button>
-            <Button variant="primary" size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
-              {t('common.save')}
-            </Button>
+        {save.error ? (
+          <div className="mt-4 border-t border-white/[0.07] pt-3">
+            <ErrorText code={save.error instanceof ApiError ? save.error.code : null} />
           </div>
-        </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

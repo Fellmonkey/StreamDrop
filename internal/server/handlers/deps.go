@@ -43,6 +43,14 @@ func (h *Handler) InstallDep(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		if err := h.Deps.Install(ctx, id); err != nil && h.Log != nil {
 			h.Log.Warn("install %s failed: %v", id, err)
+			return
+		}
+		// Starting the daemon right after rclone lands makes a fresh install
+		// work without restarting the application.
+		if id == "rclone" && h.EnsureDaemon != nil {
+			if err := h.EnsureDaemon(); err != nil && h.Log != nil {
+				h.Log.Warn("daemon start after rclone install: %v", err)
+			}
 		}
 	}()
 	writeJSON(w, http.StatusAccepted, map[string]any{"state": "downloading", "component": id})

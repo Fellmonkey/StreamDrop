@@ -257,6 +257,9 @@ export function StreamDeck({
                   setFilename('')
                   setEditingName(false)
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && canStart && !create.isPending) create.mutate()
+                }}
                 placeholder={t('stream.urlPlaceholder')}
                 className="h-11 pl-9 pr-20 text-xs"
                 spellCheck={false}

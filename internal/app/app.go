@@ -208,6 +208,39 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 		Log:         log,
 	}
 
+	// ensureDaemon (re)starts the rclone RC daemon once the binary is present
+	// — e.g. right after a first-run automatic install — and re-wires all the
+	// cloud-facing components to the fresh daemon.
+	ensureDaemon := func() error {
+		tools := depMgr.Tools()
+		if tools.Rclone == "" {
+			return nil
+		}
+		if daemon != nil && daemon.Ready() {
+			return nil
+		}
+		d, derr := rclone.StartDaemon(ctx, tools.Rclone, rclone.DaemonPort, func(level, msg string) {
+			log.Warn("%s", strings.TrimSpace(msg))
+		})
+		if derr != nil {
+			return derr
+		}
+		daemon = d
+		rc := daemon.Client()
+		provisioner = &rclone.Provisioner{RC: rc}
+		explorer = &rclone.Explorer{RC: rc}
+		cleaner = &rclone.Cleaner{RC: rc}
+		transfers.Provisioner = provisioner
+		transfers.Cleaner = cleaner
+		h.Explorer = explorer
+		h.Daemon = daemon
+		h.Provisioner = provisioner
+		transfers.ProvisionAll(ctx)
+		log.Info("rclone daemon started after install")
+		return nil
+	}
+	h.EnsureDaemon = ensureDaemon
+
 	router := server.New(h, token, port, hub, web.Handler(token))
 	srv := &http.Server{
 		Handler:           middleware.LocalGuard{Port: port}.Handler(router),

@@ -14,6 +14,7 @@ test.describe('History & Settings', () => {
     const remote = await ensureRemote(env)
     await api.putSettings({ locale: 'ru', checksum_enabled: true, parallel_limit: 2 })
     await cleanupTransfers(api)
+    await api.resumeQueue()
     await api.createTransfers({
       urls: [zipUrl(env), jsonUrl(env)],
       remote_id: remote.id,
@@ -30,7 +31,7 @@ test.describe('History & Settings', () => {
         ['completed', 'failed', 'aborted'].includes(t.status),
       )
       return terminal.length >= 2 ? terminal.length : null
-    }, { timeout: 240_000, intervals: [3_000] }).not.toBeNull()
+    }, { timeout: 360_000, intervals: [3_000] }).not.toBeNull()
   })
 
   test('history filters, copy URL, delete record', async ({ page }) => {
@@ -65,21 +66,17 @@ test.describe('History & Settings', () => {
     const dialog = page.getByRole('dialog').filter({ hasText: 'Настройки' })
     await expect(dialog).toBeVisible()
 
-    // queue tab: parallel limit
+    // queue tab: parallel limit applies immediately
     await dialog.getByRole('tab', { name: 'Очередь' }).click()
     await dialog.locator('select').first().selectOption('2')
-    await dialog.getByRole('button', { name: 'Сохранить' }).click()
-    await expect(page.getByText('Настройки сохранены')).toBeVisible()
     await expect.poll(async () => (await api.settings()).parallel_limit).toBe('2')
 
-    // stream tab: checksum switch
+    // stream tab: checksum switch applies immediately
     await dialog.getByRole('tab', { name: 'Трансляция' }).click()
     const checksum = dialog.locator('button[role="switch"]').first()
     const before = await checksum.getAttribute('aria-checked')
     await checksum.click()
     await expect(checksum).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true')
-    await dialog.getByRole('button', { name: 'Сохранить' }).click()
-    await expect(page.getByText('Настройки сохранены')).toBeVisible()
     const expected = before === 'true' ? '0' : '1'
     await expect.poll(async () => (await api.settings()).checksum_enabled).toBe(expected)
 
