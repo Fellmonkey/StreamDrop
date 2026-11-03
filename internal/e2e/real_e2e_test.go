@@ -84,7 +84,9 @@ type apiClient struct {
 
 func newAPIClient(t *testing.T, base string) *apiClient {
 	t.Helper()
-	c := &apiClient{base: strings.TrimRight(base, "/"), hc: &http.Client{Timeout: 30 * time.Second}}
+	// Real clouds can be slow; the app's own RC client allows 60s, so the
+	// smoke client must be at least as generous.
+	c := &apiClient{base: strings.TrimRight(base, "/"), hc: &http.Client{Timeout: 90 * time.Second}}
 	c.token = c.fetchToken(t)
 	return c
 }

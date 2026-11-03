@@ -147,13 +147,29 @@ type rcListEntry struct {
 	IsDir   bool
 }
 
-// ListDirs lists only the directories at one level. dirsOnly and max-depth=1
-// are applied by the daemon, so file metadata never reaches the browser.
+// splitRemoteFS splits an rclone filesystem string "name:path" into the fs
+// ("name:") and the remote path (relative, no leading slash — rclone RC's
+// operations/list and operations/mkdir return empty results or errors when the
+// remote carries a leading slash, at least for WebDAV backends).
+func splitRemoteFS(fs string) (remote, root string) {
+	if i := strings.Index(fs, ":"); i >= 0 {
+		root = fs[:i+1]
+		remote = fs[i+1:]
+	} else {
+		root = fs + ":"
+		remote = ""
+	}
+	return strings.Trim(remote, "/"), root
+}
+
+// ListDirs lists only the directories at one level. dirsOnly without recurse
+// returns the current level, so file metadata never reaches the browser.
 func (c *Client) ListDirs(ctx context.Context, fs string) ([]DirEntry, error) {
+	remote, root := splitRemoteFS(fs)
 	raw, err := c.Call(ctx, "operations/list", map[string]any{
-		"fs":      fs,
-		"opt":     map[string]any{"dirsOnly": true, "recurse": false},
-		"_filter": "max-depth=1",
+		"fs":     root,
+		"remote": remote,
+		"opt":    map[string]any{"dirsOnly": true, "recurse": false},
 	})
 	if err != nil {
 		return nil, err
@@ -189,7 +205,8 @@ func (c *Client) About(ctx context.Context, fs string) (Quota, error) {
 
 // Mkdir creates a folder.
 func (c *Client) Mkdir(ctx context.Context, fs string) error {
-	_, err := c.Call(ctx, "operations/mkdir", map[string]any{"fs": fs})
+	remote, root := splitRemoteFS(fs)
+	_, err := c.Call(ctx, "operations/mkdir", map[string]any{"fs": root, "remote": remote})
 	return err
 }
 

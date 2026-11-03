@@ -47,8 +47,22 @@ func TestListDirsUsesDirsOnlyAndMaxDepth(t *testing.T) {
 	if opt["dirsOnly"] != true {
 		t.Fatalf("dirsOnly not sent: %v", gotParams)
 	}
-	if gotParams["_filter"] != "max-depth=1" {
-		t.Fatalf("filter=%v", gotParams["_filter"])
+	if opt["recurse"] != false {
+		t.Fatalf("recurse must be false: %v", gotParams)
+	}
+	// operations/list requires fs and remote as separate keys; remote must be
+	// relative (no leading slash) or empty for the root.
+	if gotParams["fs"] != "sd_test:" {
+		t.Fatalf("fs not sent: %v", gotParams)
+	}
+	if gotParams["remote"] != "" {
+		t.Fatalf("remote not sent: %v", gotParams)
+	}
+	// The RC _filter parameter expects a JSON object, not a string; a bare
+	// "max-depth=1" string makes rclone respond 400. Single-level listing is
+	// achieved with dirsOnly + recurse=false, so no _filter must be sent.
+	if _, ok := gotParams["_filter"]; ok {
+		t.Fatalf("_filter must not be sent: %v", gotParams)
 	}
 }
 
