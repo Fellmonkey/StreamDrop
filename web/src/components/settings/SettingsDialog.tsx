@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Bell, DownloadCloud, Info, Languages, ListOrdered, Send, ShieldCheck, SlidersHorizontal, Zap } from 'lucide-react'
-import type { Settings, Status } from '@/types/api'
+import type { BrowserOption, Settings, Status } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import { formatBytes } from '@/lib/formatters'
 import { applyAccent, applyStyle, readAccent, readStyle, type Accent, type Style } from '@/lib/theme'
@@ -83,6 +83,16 @@ export function SettingsDialog({
   const [accent, setAccent] = useState<Accent>(readAccent)
   const [style, setStyle] = useState<Style>(readStyle)
   const [browser, setBrowser] = useState<BrowserChoice>(readBrowser)
+  const [browserList, setBrowserList] = useState<BrowserOption[]>([
+    { name: 'default', default: false },
+    { name: 'edge', default: false },
+    { name: 'chrome', default: false },
+    { name: 'firefox', default: false },
+  ])
+
+  useEffect(() => {
+    void api.uiBrowsers().then(setBrowserList).catch(() => undefined)
+  }, [])
 
   const save = useMutation({
     mutationFn: (patch: Record<string, string | number | boolean>) => api.updateSettings(patch),
@@ -380,17 +390,19 @@ export function SettingsDialog({
             <Row label={t('settings.browser')} hint={t('settings.browserHint')}>
               <Select
                 className="w-44"
-                value={browser}
+                value={browserList.some((b) => b.name === browser) ? browser : 'default'}
                 onChange={(e) => {
                   const next = e.target.value as BrowserChoice
                   applyBrowser(next)
                   setBrowser(next)
                 }}
               >
-                <option value="default">{t('settings.browserDefault')}</option>
-                <option value="edge">Microsoft Edge</option>
-                <option value="chrome">Google Chrome</option>
-                <option value="firefox">Mozilla Firefox</option>
+                {browserList.map((b) => (
+                  <option key={b.name} value={b.name}>
+                    {b.name === 'default' ? t('settings.browserDefault') : b.name}
+                    {b.default ? ` (${t('settings.browserDefaultShort')})` : ''}
+                  </option>
+                ))}
               </Select>
             </Row>
             <p className="text-[11px] leading-relaxed text-slate-500">{t('settings.restartHint')}</p>

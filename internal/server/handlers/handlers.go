@@ -58,11 +58,19 @@ type Handler struct {
 	// OpenURL opens an arbitrary http(s) URL in the requested browser
 	// ("default", "edge", "chrome", "firefox"). Used by OAuth flows.
 	OpenURL func(url, browser string) error
+	// InstalledBrowsers lists installed browsers (name + whether default).
+	InstalledBrowsers func() []BrowserEntry
 	Version string
 	Port    int
 	DataDir string
 	Started time.Time
 	Log     *logging.Logger
+}
+
+// BrowserEntry is a lightweight browser descriptor for the UI.
+type BrowserEntry struct {
+	Name    string `json:"name"`
+	Default bool   `json:"default"`
 }
 
 // ---------------------------------------------------------------------------
@@ -426,6 +434,15 @@ func (h *Handler) UIOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// UIBrowsers implements GET /api/v1/ui/browsers.
+func (h *Handler) UIBrowsers(w http.ResponseWriter, r *http.Request) {
+	if h.InstalledBrowsers == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"browsers": []BrowserEntry{}})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"browsers": h.InstalledBrowsers()})
 }
 
 // UIOpenURL implements POST /api/v1/ui/open-url — opens an http(s) URL in the

@@ -42,8 +42,17 @@ export function useOAuth(onDone?: () => void) {
           sessionId: session.session_id,
           authUrl: session.auth_url,
         })
-        // Open in the user-selected browser (backend launches it).
-        void api.openURL(session.auth_url, readBrowser()).catch(() => undefined)
+        // Open in the user-selected browser (backend launches it); if that
+        // fails, fall back to a regular window.open.
+        try {
+          await api.openURL(session.auth_url, readBrowser())
+        } catch {
+          try {
+            window.open(session.auth_url, '_blank')
+          } catch {
+            /* keep the manual link visible */
+          }
+        }
         timer.current = window.setInterval(async () => {
           try {
             const view = await api.oauthSession(session.session_id)

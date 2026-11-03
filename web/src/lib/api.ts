@@ -1,6 +1,7 @@
 import type {
   ApiErrorPayload,
   AuthProfile,
+  BrowserOption,
   DepItem,
   DetectedBrowser,
   InspectMetadata,
@@ -251,6 +252,10 @@ export const api = {
 
   openUI(mode: 'browser' | 'app') {
     return request<{ ok: boolean }>('/ui/open', { method: 'POST', body: JSON.stringify({ mode }) })
+  },
+
+  uiBrowsers() {
+    return request<{ browsers: BrowserOption[] }>('/ui/browsers').then((r) => r.browsers ?? [])
   },
 
   openURL(url: string, browser = 'default') {

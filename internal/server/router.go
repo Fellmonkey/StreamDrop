@@ -71,6 +71,7 @@ func New(h *handlers.Handler, token string, port int, hub *ws.Hub, static http.H
 		api.Get("/settings", h.SettingsGET)
 		api.Put("/settings", h.SettingsPUT)
 		api.Post("/notifications/test", h.NotificationsTest)
+		api.Get("/ui/browsers", h.UIBrowsers)
 		api.Post("/ui/open", h.UIOpen)
 		api.Post("/ui/open-url", h.UIOpenURL)
 

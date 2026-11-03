@@ -364,6 +364,7 @@
     "browser": "Браузер для OAuth",
     "browserHint": "В каком браузере открывать страницы авторизации",
     "browserDefault": "Системный (по умолчанию)",
+    "browserDefaultShort": "по умолчанию",
     "toast": "Системные уведомления",
     "telegram": "Telegram",
     "telegramToken": "Токен бота",

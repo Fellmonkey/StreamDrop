@@ -364,6 +364,7 @@
     "browser": "OAuth browser",
     "browserHint": "Which browser opens authorization pages",
     "browserDefault": "System default",
+    "browserDefaultShort": "default",
     "toast": "System notifications",
     "telegram": "Telegram",
     "telegramToken": "Bot token",

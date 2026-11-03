@@ -255,6 +255,11 @@ export interface Template {
   example: string
 }
 
+export interface BrowserOption {
+  name: string
+  default: boolean
+}
+
 export interface ApiErrorPayload {
   code: string
   kind: string

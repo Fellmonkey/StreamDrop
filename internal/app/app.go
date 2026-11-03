@@ -243,6 +243,15 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 	h.OpenBrowser = func() error { openBrowser(url); return nil }
 	h.OpenApp = func() error { openAppWindow(url); return nil }
 	h.OpenURL = func(u, browser string) error { return openURLWith(browser, u) }
+	h.InstalledBrowsers = func() []handlers.BrowserEntry {
+		installed := InstalledBrowsers()
+		out := make([]handlers.BrowserEntry, 0, len(installed)+1)
+		out = append(out, handlers.BrowserEntry{Name: "default", Default: false})
+		for _, b := range installed {
+			out = append(out, handlers.BrowserEntry{Name: b.Name, Default: b.Default})
+		}
+		return out
+	}
 
 	router := server.New(h, token, port, hub, web.Handler(token))
 	srv := &http.Server{
@@ -417,61 +426,13 @@ func openAppWindow(url string) {
 	if !strings.Contains(viewURL, "?") {
 		viewURL += "?view=app"
 	}
-	if runtime.GOOS == "windows" {
-		for _, bin := range windowsBrowserBinaries() {
-			if _, err := os.Stat(bin); err == nil {
-				_ = exec.Command(bin, "--app="+viewURL).Start()
-				return
-			}
+	for _, name := range []string{"edge", "chrome"} {
+		if p := FindBrowserPath(name); p != "" {
+			_ = exec.Command(p, "--app="+viewURL).Start()
+			return
 		}
 	}
 	openBrowser(url)
-}
-
-func windowsBrowserBinaries() []string {
-	var out []string
-	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
-		dir := os.Getenv(key)
-		if dir == "" {
-			continue
-		}
-		out = append(out,
-			dir+`\Microsoft\Edge\Application\msedge.exe`,
-			dir+`\Google\Chrome\Application\chrome.exe`,
-		)
-	}
-	// Firefox lives outside the Chromium convention.
-	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)"} {
-		if dir := os.Getenv(key); dir != "" {
-			out = append(out, dir+`\Mozilla Firefox\firefox.exe`)
-		}
-	}
-	return out
-}
-
-// findBrowser returns an installed browser executable by friendly name.
-func findBrowser(name string) string {
-	for _, key := range []string{"ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA"} {
-		dir := os.Getenv(key)
-		if dir == "" {
-			continue
-		}
-		switch name {
-		case "edge":
-			if p := dir + `\Microsoft\Edge\Application\msedge.exe`; fileExists(p) {
-				return p
-			}
-		case "chrome":
-			if p := dir + `\Google\Chrome\Application\chrome.exe`; fileExists(p) {
-				return p
-			}
-		case "firefox":
-			if p := dir + `\Mozilla Firefox\firefox.exe`; fileExists(p) {
-				return p
-			}
-		}
-	}
-	return ""
 }
 
 func fileExists(path string) bool {
@@ -483,7 +444,7 @@ func fileExists(path string) bool {
 // OS handler). Used for OAuth and external opening.
 func openURLWith(browser, url string) error {
 	if browser != "default" {
-		if p := findBrowser(browser); p != "" {
+		if p := FindBrowserPath(browser); p != "" {
 			_ = exec.Command(p, url).Start()
 			return nil
 		}
