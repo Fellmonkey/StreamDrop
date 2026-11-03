@@ -115,8 +115,7 @@ func TestQuotaAndLatency(t *testing.T) {
 	}
 }
 
-func TestConfigCreateSendsParameters(t *testing.T) {
-	var got map[string]any
+func TestConfigCreateSendsParameters(t *testing.T) {	var got map[string]any
 	srv := mockDaemon(t, func(method string, params map[string]any, w http.ResponseWriter) {
 		got = params
 		_ = json.NewEncoder(w).Encode(map[string]any{})
@@ -170,6 +169,38 @@ func TestRCErrorFromBody(t *testing.T) {
 		t.Fatal("expected error")
 	} else if !strings.Contains(err.Error(), "directory not found") {
 		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestRemoteConfigRendersINISection(t *testing.T) {
+	srv := mockDaemon(t, func(method string, params map[string]any, w http.ResponseWriter) {
+		if method != "config/dump" {
+			t.Fatalf("method=%s", method)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"sd_abc": map[string]any{
+				"type":   "webdav",
+				"url":    "https://webdav.cloud.mail.ru",
+				"vendor": "other",
+				"user":   "u",
+				"pass":   "obscured",
+			},
+		})
+	})
+	defer srv.Close()
+
+	c := NewClient(srv.URL)
+	ini, err := c.RemoteConfig(context.Background(), "sd_abc")
+	if err != nil {
+		t.Fatalf("remote config: %v", err)
+	}
+	for _, want := range []string{"[sd_abc]", "type = webdav", "url = https://webdav.cloud.mail.ru", "pass = obscured"} {
+		if !strings.Contains(ini, want) {
+			t.Fatalf("ini missing %q: %s", want, ini)
+		}
+	}
+	if _, err := c.RemoteConfig(context.Background(), "sd_missing"); err == nil {
+		t.Fatal("expected error for missing section")
 	}
 }
 

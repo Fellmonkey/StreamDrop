@@ -57,6 +57,11 @@ type StreamSpec struct {
 	// RemoteTarget is the fully qualified rclone destination,
 	// e.g. "sd_abc:/ISOs/file.iso".
 	RemoteTarget  string
+	// ConfigPath is an optional rclone config file containing the destination
+	// remote. The daemon keeps config in memory only, so a separate rcat
+	// subprocess cannot see it — it needs a materialised file. Empty means
+	// the platform null device (no remotes available).
+	ConfigPath string
 	SupportsRange bool
 
 	BandwidthDownBps int64
@@ -450,13 +455,22 @@ func (p *Pipeline) fetch(ctx context.Context, spec StreamSpec, offset int64, w i
 	return nil
 }
 
+// configPathFor returns the rclone config file to use for an upload: the
+// materialised one when provided, otherwise the platform null device.
+func configPathFor(spec StreamSpec) string {
+	if spec.ConfigPath != "" {
+		return spec.ConfigPath
+	}
+	return nullDevice()
+}
+
 func (p *Pipeline) buildUpload(spec StreamSpec) *exec.Cmd {
 	if p.Tools.Command != nil {
 		return p.Tools.Command("rclone", spec, 0, p.Tools)
 	}
 	args := []string{
 		"rcat", spec.RemoteTarget,
-		"--config", nullDevice(),
+		"--config", configPathFor(spec),
 		"--stats", "500ms",
 		"--stats-one-line",
 		"--log-level", "INFO",

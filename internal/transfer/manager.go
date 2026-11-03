@@ -454,6 +454,22 @@ func (m *Manager) execute(ctx context.Context, t *runningTask) {
 		return
 	}
 
+	// The daemon keeps its rclone config in memory only; the uploader
+	// subprocess needs a materialised config file containing the destination
+	// remote section.
+	remoteConfigPath := ""
+	if m.Provisioner != nil {
+		if ini, ierr := m.Provisioner.RC.RemoteConfig(ctx, remote.RcloneName); ierr == nil {
+			if f, ferr := os.CreateTemp("", "streamdrop-rclone-*.conf"); ferr == nil {
+				_ = os.Chmod(f.Name(), 0o600)
+				_, _ = f.WriteString(ini)
+				_ = f.Close()
+				remoteConfigPath = f.Name()
+				defer os.Remove(f.Name())
+			}
+		}
+	}
+
 	filename := sanitizeFilename(tr.FileName())
 	target := rclone.JoinPath(tr.RemotePath, filename)
 	remoteTarget := remote.RcloneName + ":" + target
@@ -477,6 +493,7 @@ func (m *Manager) execute(ctx context.Context, t *runningTask) {
 			Engine:           tr.Engine,
 			Headers:          headers.Map(),
 			RemoteTarget:     remoteTarget,
+			ConfigPath:       remoteConfigPath,
 			SupportsRange:    t.supportsRange,
 			BandwidthDownBps: tr.BandwidthDown,
 			BandwidthUpBps:   tr.BandwidthUp,

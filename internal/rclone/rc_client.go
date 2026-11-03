@@ -112,6 +112,30 @@ func (c *Client) ConfigCreate(ctx context.Context, name, providerType string, pa
 	return err
 }
 
+// RemoteConfig returns an INI block for one remote section from the running
+// daemon. The daemon keeps configuration in memory only; separate rclone
+// subprocesses (e.g. rcat) need a materialised config file to see a remote.
+func (c *Client) RemoteConfig(ctx context.Context, name string) (string, error) {
+	raw, err := c.Call(ctx, "config/dump", map[string]any{})
+	if err != nil {
+		return "", err
+	}
+	var all map[string]map[string]string
+	if err := json.Unmarshal(raw, &all); err != nil {
+		return "", err
+	}
+	sec, ok := all[name]
+	if !ok {
+		return "", fmt.Errorf("section %q not in daemon config", name)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "[%s]\n", name)
+	for k, v := range sec {
+		fmt.Fprintf(&b, "%s = %s\n", k, v)
+	}
+	return b.String(), nil
+}
+
 // ConfigUpdate updates an existing remote.
 func (c *Client) ConfigUpdate(ctx context.Context, name string, parameters map[string]string) error {
 	_, err := c.Call(ctx, "config/update", map[string]any{

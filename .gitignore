@@ -29,3 +29,11 @@ front_spec.md
 implementation_plan.md
 product_spec.md
 *.log
+
+# Playwright integration E2E artifacts
+web/test-results/
+web/playwright-report/
+.playwright-pids.txt
+web/e2e-integration/fixtures/*.iso
+web/e2e-integration/fixtures/*.zip
+/web/test-results

@@ -516,11 +516,21 @@ func (t Transfer) FileName() string {
 	return t.ResolvedName
 }
 
+// transferColumns is used in SELECT statements: COALESCE expressions keep the
+// API contract stable for rows written before a column gained a default.
 const transferColumns = `id, source_url, resolved_filename, COALESCE(filename_override,''), COALESCE(file_size,0),
 	remote_id, COALESCE(remote_label,''), remote_path, engine, auth_profile_id, mode, COALESCE(buffer_size_bytes,0),
 	status, COALESCE(priority,0), COALESCE(bytes_transferred,0), COALESCE(bytes_confirmed,0), COALESCE(sha256,''),
 	COALESCE(retry_attempts,0), COALESCE(bandwidth_down_bps,0), COALESCE(bandwidth_up_bps,0), COALESCE(average_speed_bps,0),
 	COALESCE(error_kind,''), COALESCE(error_message,''), started_at, completed_at, created_at`
+
+// transferInsertColumns is the plain column list for INSERT — SQL expressions
+// are not allowed as INSERT column names.
+const transferInsertColumns = `id, source_url, resolved_filename, filename_override, file_size,
+	remote_id, remote_label, remote_path, engine, auth_profile_id, mode, buffer_size_bytes,
+	status, priority, bytes_transferred, bytes_confirmed, sha256,
+	retry_attempts, bandwidth_down_bps, bandwidth_up_bps, average_speed_bps,
+	error_kind, error_message, started_at, completed_at, created_at`
 
 func scanTransfer(sc interface{ Scan(...any) error }) (Transfer, error) {
 	var t Transfer
@@ -552,7 +562,7 @@ func (s *Store) CreateTransfer(t Transfer) error {
 	if t.CreatedAt.IsZero() {
 		t.CreatedAt = time.Now().UTC()
 	}
-	_, err := s.db.Exec(`INSERT INTO transfers (`+transferColumns+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err := s.db.Exec(`INSERT INTO transfers (`+transferInsertColumns+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		t.ID, t.SourceURL, t.ResolvedName, nullString(t.FilenameOverride), t.FileSize,
 		t.RemoteID, t.RemoteLabel, t.RemotePath, t.Engine, t.AuthProfileID, t.Mode, t.BufferSize,
 		t.Status, t.Priority, t.BytesTransferred, t.BytesConfirmed, nullString(t.SHA256),
