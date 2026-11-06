@@ -60,7 +60,7 @@ jobs:
       - uses: golangci/golangci-lint-action@v7
         with:
           version: v2.15.0
-          args: run ./...
+          args: ./...
 
   matrix-build:
     name: Cross-compile (${{ matrix.os }}/${{ matrix.arch }})
