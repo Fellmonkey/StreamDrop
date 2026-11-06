@@ -93,7 +93,8 @@ jobs:
             ext=".exe"
             flags="-s -w -H=windowsgui"
           fi
-          go build -trimpath -ldflags "$flags" -o "streamdrop${ext}" ./cmd/streamdrop
+          version="${GITHUB_REF_NAME#v}"
+          go build -trimpath -ldflags "$flags -X streamdrop/internal/config.Version=$version" -o "streamdrop${ext}" ./cmd/streamdrop
 
       - name: Package
         run: |

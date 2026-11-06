@@ -15,7 +15,7 @@ import (
 )
 
 // Version is stamped at build time with -ldflags "-X streamdrop/internal/config.Version=...".
-var Version = "1.0.0"
+var Version = "1.1.0"
 
 // Config is the effective application configuration.
 type Config struct {

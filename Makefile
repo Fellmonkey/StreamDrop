@@ -6,6 +6,7 @@ WEB := web
 BIN := bin/streamdrop
 BIN_MCP := bin/streamdrop-mcp
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+VERSION_NO_V := $(VERSION:v%=%)
 
 .PHONY: all web deps build build-mcp build-windows test test-web test-e2e vet lint depcheck run clean package
 all: web build
@@ -18,7 +19,7 @@ deps:
 
 build: web
 	mkdir -p bin
-	CGO_ENABLED=0 go build -trimpath -o $(BIN) ./cmd/streamdrop
+	CGO_ENABLED=0 go build -trimpath -o $(BIN) -ldflags "-X streamdrop/internal/config.Version=$(VERSION_NO_V)" ./cmd/streamdrop
 
 build-mcp:
 	mkdir -p bin
@@ -30,7 +31,7 @@ build-mcp:
 build-windows: web
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath \
-		-ldflags "-s -w -H=windowsgui" -o bin/streamdrop.exe ./cmd/streamdrop
+		-ldflags "-s -w -H=windowsgui -X streamdrop/internal/config.Version=$(VERSION_NO_V)" -o bin/streamdrop.exe ./cmd/streamdrop
 
 test:
 	go test ./...
