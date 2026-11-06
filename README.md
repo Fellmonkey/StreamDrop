@@ -8,6 +8,8 @@ The stream goes `HTTP → RAM → rclone rcat`: large files travel from the web 
 
 > Русская версия: [`README.ru.md`](README.ru.md)
 
+[screen-capture (26).webm](https://github.com/user-attachments/assets/c60951db-2987-401d-8d75-b5501bcc86fe)
+
 ## For whom and why
 
 This is a **personal tool**, not an enterprise platform: your files, your home network, your computer. StreamDrop solves one task — “move a file where it's needed without occupying disk space and without intermediate steps”.
