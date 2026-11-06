@@ -68,7 +68,13 @@ func (p Paths) Candidates(id, version string) []string {
 
 // BinaryPath returns the executable path inside a version directory.
 func BinaryPath(dir string, c Component) string {
-	name := BinaryFileName(c, runtime.GOOS)
+	return binaryPathFor(dir, c, runtime.GOOS)
+}
+
+// binaryPathFor is BinaryPath with an explicit target OS (needed when
+// extracting a Windows archive on a POSIX test host).
+func binaryPathFor(dir string, c Component, goos string) string {
+	name := BinaryFileName(c, goos)
 	// curl's Windows archive keeps the binary under bin/.
 	if c.ID == "curl" {
 		alt := filepath.Join(dir, "bin", name)
@@ -132,7 +138,7 @@ func ExtractComponent(archivePath, destDir string, c Component, goos string) (st
 		if err := extractZipTree(archivePath, destDir); err != nil {
 			return "", err
 		}
-		return BinaryPath(destDir, c), nil
+		return binaryPathFor(destDir, c, goos), nil
 	}
 	return ExtractBinary(archivePath, destDir, c, goos)
 }

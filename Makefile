@@ -49,6 +49,7 @@ package: build-windows
 	mkdir -p dist/StreamDrop
 	cp bin/streamdrop.exe dist/StreamDrop/
 	cp README.md dist/StreamDrop/
+	cp README.ru.md dist/StreamDrop/
 	cp -r deps dist/StreamDrop/deps 2>/dev/null || true
 	cd dist && rm -f StreamDrop-v1-windows-amd64.zip && \
 		(command -v zip >/dev/null && zip -qr StreamDrop-v1-windows-amd64.zip StreamDrop || \

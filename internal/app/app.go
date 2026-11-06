@@ -165,10 +165,12 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 	// OAuth: the callback listener lives on the fixed port, independent of the
 	// UI port. Tokens are encrypted before they reach SQLite.
 	oauthMgr := oauth.NewManager(oauth.NewRegistry(), cfg.OAuthCallbackPort,
-		func(ctx context.Context, providerID string, tok oauth.TokenSet) error {
+		func(ctx context.Context, providerID, clientID, clientSecret string, tok oauth.TokenSet) error {
 			expiry := time.Now().UTC().Add(time.Duration(tok.ExpiresIn) * time.Second)
 			return st.SaveOAuthToken(store.OAuthToken{
 				Provider:     providerID,
+				ClientID:     clientID,
+				ClientSecret: clientSecret,
 				AccessToken:  tok.AccessToken,
 				RefreshToken: tok.RefreshToken,
 				Scope:        tok.Scope,
@@ -291,12 +293,11 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 	}
 	if !cfg.NoTray {
 		tray.Start(ctx, tray.Callbacks{
-			URL:          url,
-			OnOpen:       func() { openAppWindow(url) },
+			URL:           url,
+			OnOpen:        func() { openAppWindow(url) },
 			OnOpenBrowser: func() { openBrowser(url) },
-			OnPause:      func() { transfers.PauseQueue() },
-			OnResume:     func() { transfers.ResumeQueue() },
-			OnQuit:       func() { cancel() },
+			OnQuit:        func() { cancel() },
+			Summary:       func() string { return traySummary(transfers) },
 		})
 	}
 
@@ -406,16 +407,27 @@ func executableDir() string {
 }
 
 func openBrowser(url string) {
-	var cmd *exec.Cmd
+	_ = openDefault(url)
+}
+
+// openDefault opens a URL in the system default browser via the OS API:
+// ShellExecute (Windows), `open` (macOS), `xdg-open` (Linux). It returns the
+// real error so callers can surface it instead of silently failing.
+func openDefault(url string) error {
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		// Primary: ShellExecute via rundll32. If the app runs elevated while
+		// browsers run unelevated, this is blocked by UIPI — fall back to the
+		// shell broker (explorer.exe), which opens from elevated processes.
+		if err := exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start(); err == nil {
+			return nil
+		}
+		return exec.Command("explorer.exe", url).Start()
 	case "darwin":
-		cmd = exec.Command("open", url)
+		return exec.Command("open", url).Start()
 	default:
-		cmd = exec.Command("xdg-open", url)
+		return exec.Command("xdg-open", url).Start()
 	}
-	_ = cmd.Start()
 }
 
 // openAppWindow opens the UI in a Chromium-based browser in app mode (a
@@ -440,17 +452,49 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-// openURLWith opens a URL in the selected browser (default falls back to the
-// OS handler). Used for OAuth and external opening.
+// traySummary renders the current transfer status for the tray: progress in
+// percent plus download/upload speeds of the first active transfer. Returns ""
+// when nothing is running.
+func traySummary(transfers *transfer.Manager) string {
+	if transfers == nil {
+		return ""
+	}
+	metrics := transfers.LiveMetrics()
+	if len(metrics) == 0 {
+		return ""
+	}
+	m := metrics[0]
+	pct := 0.0
+	if m.TotalSize > 0 {
+		pct = float64(m.BytesConfirmed) / float64(m.TotalSize) * 100
+	}
+	return fmt.Sprintf("Upload: %.0f%% · ↓%s ↑%s", pct, formatBPS(m.DownloadBps), formatBPS(m.UploadBps))
+}
+
+func formatBPS(bps int64) string {
+	switch {
+	case bps >= 1000*1000:
+		return fmt.Sprintf("%.1f МБ/s", float64(bps)/(1000*1000))
+	case bps >= 1000:
+		return fmt.Sprintf("%.0f КБ/s", float64(bps)/1000)
+	default:
+		return fmt.Sprintf("%d Б/s", bps)
+	}
+}
+
+// openURLWith opens a URL in the selected browser. The system default browser
+// wins: when no specific browser is requested or the requested one is missing
+// / failed to launch, the OS handler (ShellExecute / open / xdg-open) is used.
+// Errors are returned so the UI can react instead of failing silently.
 func openURLWith(browser, url string) error {
-	if browser != "default" {
+	if browser != "" && browser != "default" {
 		if p := FindBrowserPath(browser); p != "" {
-			_ = exec.Command(p, url).Start()
-			return nil
+			if err := exec.Command(p, url).Start(); err == nil {
+				return nil
+			}
 		}
 	}
-	openBrowser(url)
-	return nil
+	return openDefault(url)
 }
 
 var _ = json.Marshal

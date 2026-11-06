@@ -820,6 +820,12 @@ func (m *Manager) applyOAuthToken(remote store.Remote, opts map[string]string) {
 		expiry = *tok.ExpiresAt
 	}
 	opts["token"] = rclone.TokenJSON(tok.AccessToken, tok.RefreshToken, "Bearer", expiry)
+	// The token was issued for the app's own client: the same client_id /
+	// client_secret must be handed to rclone or it would fall back to its
+	// shared client and every API call would be rejected with a re-auth.
+	if tok.ClientID != "" {
+		opts["client_id"] = tok.ClientID
+	}
 	if tok.ClientSecret != "" {
 		opts["client_secret"] = tok.ClientSecret
 	}

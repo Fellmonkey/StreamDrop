@@ -13,6 +13,20 @@ type Explorer struct {
 	RC *Client
 }
 
+// mapCloudError converts raw rclone daemon errors into actionable API codes.
+func mapCloudError(err error, params map[string]any) error {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "SERVICE_DISABLED"), strings.Contains(msg, "accessNotConfigured"):
+		return apierr.New(apierr.CodeCloudGoogleAPIDisabled, params).WithDetail(msg)
+	default:
+		return apierr.Wrap(apierr.CodeCloudUnreachable, err, params)
+	}
+}
+
 // List returns the directories of one level. q filters by name substring
 // (case-insensitive). rclone has no server-side name search, so the daemon
 // still lists only directories of this level with dirsOnly + max-depth=1; the
@@ -20,7 +34,7 @@ type Explorer struct {
 func (e *Explorer) List(ctx context.Context, rcloneName, path, q string) ([]DirEntry, error) {
 	dirs, err := e.RC.ListDirs(ctx, remoteFS(rcloneName, path))
 	if err != nil {
-		return nil, apierr.Wrap(apierr.CodeCloudUnreachable, err, map[string]any{"remote": rcloneName})
+		return nil, mapCloudError(err, map[string]any{"remote": rcloneName})
 	}
 	needle := strings.ToLower(strings.TrimSpace(q))
 	out := make([]DirEntry, 0, len(dirs))
@@ -51,7 +65,7 @@ func (e *Explorer) Mkdir(ctx context.Context, rcloneName, path, name string) err
 func (e *Explorer) Quota(ctx context.Context, rcloneName string) (Quota, error) {
 	q, err := e.RC.About(ctx, remoteFS(rcloneName, ""))
 	if err != nil {
-		return Quota{}, apierr.Wrap(apierr.CodeCloudUnreachable, err, map[string]any{"remote": rcloneName})
+		return Quota{}, mapCloudError(err, map[string]any{"remote": rcloneName})
 	}
 	return q, nil
 }

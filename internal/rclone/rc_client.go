@@ -112,6 +112,49 @@ func (c *Client) ConfigCreate(ctx context.Context, name, providerType string, pa
 	return err
 }
 
+// ConfigCreateNonInteractive creates a remote with the config wizard disabled:
+// rclone returns pending questions instead of blocking on a browser / webserver.
+func (c *Client) ConfigCreateNonInteractive(ctx context.Context, name, providerType string, parameters map[string]string) (map[string]any, error) {
+	raw, err := c.Call(ctx, "config/create", map[string]any{
+		"name":       name,
+		"type":       providerType,
+		"parameters": parameters,
+		"opt": map[string]any{
+			"nonInteractive": true,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ConfigContinue answers a pending config-wizard question.
+func (c *Client) ConfigContinue(ctx context.Context, name string, parameters map[string]string, state, result string) (map[string]any, error) {
+	raw, err := c.Call(ctx, "config/create", map[string]any{
+		"name":       name,
+		"type":       "",
+		"parameters": parameters,
+		"opt": map[string]any{
+			"continue": true,
+			"state":    state,
+			"result":   result,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RemoteConfig returns an INI block for one remote section from the running
 // daemon. The daemon keeps configuration in memory only; separate rclone
 // subprocesses (e.g. rcat) need a materialised config file to see a remote.

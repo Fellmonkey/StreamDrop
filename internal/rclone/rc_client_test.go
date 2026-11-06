@@ -115,7 +115,8 @@ func TestQuotaAndLatency(t *testing.T) {
 	}
 }
 
-func TestConfigCreateSendsParameters(t *testing.T) {	var got map[string]any
+func TestConfigCreateSendsParameters(t *testing.T) {
+	var got map[string]any
 	srv := mockDaemon(t, func(method string, params map[string]any, w http.ResponseWriter) {
 		got = params
 		_ = json.NewEncoder(w).Encode(map[string]any{})

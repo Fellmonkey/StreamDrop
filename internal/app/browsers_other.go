@@ -4,6 +4,7 @@ package app
 
 import (
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -61,15 +62,38 @@ func macBrowsers() []BrowserInfo {
 		{"edge", "Microsoft Edge", "Microsoft Edge"},
 		{"brave", "Brave Browser", "Brave Browser"},
 	}
+	// Resolve the actual default via LaunchServices (LSHandler for public.url).
+	defName := ""
+	if out, err := exec.Command("defaults", "read", "com.apple.LaunchServices/com.apple.launchservices.secure").Output(); err == nil {
+		if m := macDefaultBundleRe.FindStringSubmatch(string(out)); len(m) > 1 {
+			for _, a := range apps {
+				if m[1] == macBundleIDs[a.name] {
+					defName = a.name
+					break
+				}
+			}
+		}
+	}
 	var out []BrowserInfo
 	for _, a := range apps {
 		p := "/Applications/" + a.bundle + ".app/Contents/MacOS/" + a.exe
 		if fileExists(p) {
-			out = append(out, BrowserInfo{Name: a.name, Path: p, Default: a.name == "safari"})
+			out = append(out, BrowserInfo{Name: a.name, Path: p, Default: a.name == defName})
 		}
 	}
 	return out
 }
+
+// macBundleIDs maps browser names to LaunchServices bundle identifiers.
+var macBundleIDs = map[string]string{
+	"safari":  "com.apple.Safari",
+	"chrome":  "com.google.Chrome",
+	"firefox": "org.mozilla.firefox",
+	"edge":    "com.microsoft.edgemac",
+	"brave":   "com.brave.Browser",
+}
+
+var macDefaultBundleRe = regexp.MustCompile(`LSHandlerContentType\s*=\s*"public\.url";[\s\S]*?LSHandlerRoleAll\s*=\s*"([^"]+)"`)
 
 // FindBrowserPath resolves a browser by friendly name.
 func FindBrowserPath(name string) string {

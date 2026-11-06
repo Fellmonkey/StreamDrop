@@ -60,11 +60,11 @@ type Handler struct {
 	OpenURL func(url, browser string) error
 	// InstalledBrowsers lists installed browsers (name + whether default).
 	InstalledBrowsers func() []BrowserEntry
-	Version string
-	Port    int
-	DataDir string
-	Started time.Time
-	Log     *logging.Logger
+	Version           string
+	Port              int
+	DataDir           string
+	Started           time.Time
+	Log               *logging.Logger
 }
 
 // BrowserEntry is a lightweight browser descriptor for the UI.
@@ -127,7 +127,10 @@ func (h *Handler) Status(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Stats implements GET /api/v1/stats: saved bytes plus the wear model.
+// Stats implements GET /api/v1/stats: saved bytes, saved time and the wear
+// model. Internet speeds are the standard tariff model (100/20 Mbit/s) — not
+// measured transfer speeds, which reflect the source server rather than the
+// user's link.
 func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 	saved, err := h.Store.SavedBytes()
 	if err != nil {
@@ -136,8 +139,9 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 	}
 	report := stats.Calculate(saved)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"saved_bytes": saved,
-		"wear":        report,
+		"saved_bytes":        saved,
+		"time_saved_seconds": report.AverageTimeSavedSeconds,
+		"wear":               report,
 	})
 }
 

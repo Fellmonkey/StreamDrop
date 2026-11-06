@@ -175,9 +175,9 @@ type testRemotePayload struct {
 type explorerPayload struct {
 	Path        string `json:"path"`
 	Directories []struct {
-		Name   string `json:"name"`
-		Path   string `json:"path"`
-		IsDir  bool   `json:"is_dir"`
+		Name  string `json:"name"`
+		Path  string `json:"path"`
+		IsDir bool   `json:"is_dir"`
 	} `json:"directories"`
 }
 

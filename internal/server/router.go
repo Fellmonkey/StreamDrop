@@ -55,6 +55,7 @@ func New(h *handlers.Handler, token string, port int, hub *ws.Hub, static http.H
 		api.Get("/oauth/providers", h.OAuthProviders)
 		api.Post("/oauth/{provider}/authorize", h.OAuthAuthorize)
 		api.Get("/oauth/session/{id}", h.OAuthSession)
+		api.Post("/oauth/session/{id}/code", h.OAuthSubmitCode)
 		api.Delete("/oauth/{provider}", h.OAuthRevoke)
 
 		api.Get("/auth/browsers", h.Browsers)

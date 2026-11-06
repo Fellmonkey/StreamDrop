@@ -14,7 +14,10 @@ func (h *Handler) OAuthProviders(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"providers": []any{}})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"providers": h.OAuth.Providers()})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"providers":    h.OAuth.Providers(),
+		"redirect_uri": h.OAuth.RedirectURI(),
+	})
 }
 
 // OAuthAuthorize implements POST /api/v1/oauth/{provider}/authorize.
@@ -34,10 +37,36 @@ func (h *Handler) OAuthAuthorize(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// OneDrive: honor the account-type preference (personal accounts use the
+	// "consumers" endpoint; otherwise the "common" endpoint).
+	if chi.URLParam(r, "provider") == "onedrive" && h.Store != nil {
+		if h.Store.GetSetting("onedrive_account_type", "") == "consumers" {
+			h.OAuth.SetEndpointOverride("onedrive",
+				"https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
+				"https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
+		} else {
+			h.OAuth.SetEndpointOverride("onedrive", "", "")
+		}
+	}
 	session, authURL, err := h.OAuth.Start(r.Context(), chi.URLParam(r, "provider"), body.ClientID, body.ClientSecret)
 	if err != nil {
 		apierr.Write(w, err)
 		return
+	}
+	// Open the provider page in the system browser from the backend, so the
+	// flow works even if the frontend call is blocked. The browser choice set
+	// in Settings is honored (defaults to the system browser); errors are
+	// logged and the UI still shows a manual link plus a retry button.
+	if h.OpenURL != nil {
+		browser := "default"
+		if h.Store != nil {
+			browser = h.Store.GetSetting("oauth_browser", "default")
+		}
+		go func() {
+			if err := h.OpenURL(authURL, browser); err != nil && h.Log != nil {
+				h.Log.Warn("oauth browser open failed: %v", err)
+			}
+		}()
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"session_id":   session.ID,
@@ -54,6 +83,33 @@ func (h *Handler) OAuthSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	view, err := h.OAuth.GetSession(chi.URLParam(r, "id"))
+	if err != nil {
+		apierr.Write(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
+}
+
+// OAuthSubmitCode implements POST /api/v1/oauth/session/{id}/code — completes a
+// provider authorization whose code is copied from the provider's verification
+// page (Yandex).
+func (h *Handler) OAuthSubmitCode(w http.ResponseWriter, r *http.Request) {
+	if h.OAuth == nil {
+		apierr.Write(w, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "session"}))
+		return
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	if err := decodeJSON(r, &body); err != nil {
+		apierr.Write(w, err)
+		return
+	}
+	if body.Code == "" {
+		apierr.Write(w, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "code"}))
+		return
+	}
+	view, err := h.OAuth.CompleteWithCode(r.Context(), chi.URLParam(r, "id"), body.Code)
 	if err != nil {
 		apierr.Write(w, err)
 		return

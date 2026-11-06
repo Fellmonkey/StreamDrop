@@ -778,6 +778,7 @@ func (s *Store) DeleteDependency(id string) error {
 type OAuthToken struct {
 	Provider     string
 	RemoteID     string
+	ClientID     string
 	ClientSecret string
 	AccessToken  string
 	RefreshToken string
@@ -787,6 +788,10 @@ type OAuthToken struct {
 
 // SaveOAuthToken encrypts and upserts tokens.
 func (s *Store) SaveOAuthToken(t OAuthToken) error {
+	clientID, err := s.encryptBytes([]byte(t.ClientID))
+	if err != nil {
+		return err
+	}
 	clientSecret, err := s.encryptBytes([]byte(t.ClientSecret))
 	if err != nil {
 		return err
@@ -799,29 +804,33 @@ func (s *Store) SaveOAuthToken(t OAuthToken) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.Exec(`INSERT INTO oauth_tokens(provider, remote_id, encrypted_client_secret, encrypted_access_token,
-		encrypted_refresh_token, scope, expires_at, updated_at) VALUES (?,?,?,?,?,?,?,?)
+	_, err = s.db.Exec(`INSERT INTO oauth_tokens(provider, remote_id, encrypted_client_id, encrypted_client_secret, encrypted_access_token,
+		encrypted_refresh_token, scope, expires_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)
 		ON CONFLICT(provider) DO UPDATE SET remote_id=excluded.remote_id,
+			encrypted_client_id=excluded.encrypted_client_id,
 			encrypted_client_secret=excluded.encrypted_client_secret,
 			encrypted_access_token=excluded.encrypted_access_token,
 			encrypted_refresh_token=excluded.encrypted_refresh_token,
 			scope=excluded.scope, expires_at=excluded.expires_at, updated_at=excluded.updated_at`,
-		t.Provider, t.RemoteID, clientSecret, access, refresh, t.Scope, timeText(t.ExpiresAt), nowText())
+		t.Provider, t.RemoteID, clientID, clientSecret, access, refresh, t.Scope, timeText(t.ExpiresAt), nowText())
 	return err
 }
 
 // GetOAuthToken decrypts tokens for a provider.
 func (s *Store) GetOAuthToken(provider string) (OAuthToken, error) {
 	var t OAuthToken
-	var cs, at, rt []byte
+	var cid, cs, at, rt []byte
 	var expires sql.NullString
-	err := s.db.QueryRow(`SELECT provider, COALESCE(remote_id,''), encrypted_client_secret, encrypted_access_token,
+	err := s.db.QueryRow(`SELECT provider, COALESCE(remote_id,''), COALESCE(encrypted_client_id, ''), encrypted_client_secret, encrypted_access_token,
 		encrypted_refresh_token, COALESCE(scope,''), expires_at FROM oauth_tokens WHERE provider = ?`, provider).
-		Scan(&t.Provider, &t.RemoteID, &cs, &at, &rt, &t.Scope, &expires)
+		Scan(&t.Provider, &t.RemoteID, &cid, &cs, &at, &rt, &t.Scope, &expires)
 	if errors.Is(err, sql.ErrNoRows) {
 		return t, apierr.New(apierr.CodeAuthOAuthRequired, map[string]any{"provider": provider})
 	}
 	if err != nil {
+		return t, err
+	}
+	if t.ClientID, err = s.decryptString(cid); err != nil {
 		return t, err
 	}
 	if t.ClientSecret, err = s.decryptString(cs); err != nil {

@@ -169,6 +169,8 @@ export interface OAuthProvider {
   rclone_type: string
   scopes: string[]
   needs_client_id: boolean
+  register_url?: string
+  needs_code?: boolean
 }
 
 export interface OAuthSession {
@@ -178,6 +180,7 @@ export interface OAuthSession {
   remote_id?: string
   error_code?: string
   expires_at: string
+  needs_code?: boolean
 }
 
 export interface Settings {
@@ -199,9 +202,21 @@ export interface Settings {
 
 export interface Stats {
   saved_bytes: number
+  time_saved_seconds: number
   wear: {
-    classes: { class: string; label: string; bytes: number; percent: number; approximate?: boolean }[]
+    classes: {
+      class: string
+      label: string
+      bytes: number
+      percent: number
+      approximate?: boolean
+      time_saved_seconds: number
+      read_speed_bps: number
+      write_speed_bps: number
+      rewrite_capacity_tb: number | null
+    }[]
     average: number
+    average_time_saved_seconds: number
   }
 }
 

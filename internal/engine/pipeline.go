@@ -56,12 +56,12 @@ type StreamSpec struct {
 
 	// RemoteTarget is the fully qualified rclone destination,
 	// e.g. "sd_abc:/ISOs/file.iso".
-	RemoteTarget  string
+	RemoteTarget string
 	// ConfigPath is an optional rclone config file containing the destination
 	// remote. The daemon keeps config in memory only, so a separate rcat
 	// subprocess cannot see it — it needs a materialised file. Empty means
 	// the platform null device (no remotes available).
-	ConfigPath string
+	ConfigPath    string
 	SupportsRange bool
 
 	BandwidthDownBps int64

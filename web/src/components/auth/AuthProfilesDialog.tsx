@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { Cookie, Globe, Plus, ShieldAlert, Trash2, Upload } from 'lucide-react'
+import { Cookie, FileUp, Globe, Plus, ShieldAlert, Trash2, Upload } from 'lucide-react'
 import type { AuthProfile, DetectedBrowser } from '@/types/api'
 import { api, ApiError } from '@/lib/api'
 import {
@@ -12,7 +12,6 @@ import {
   DialogContent,
   Input,
   Label,
-  Select,
   Tabs,
   TabsContent,
   TabsList,
@@ -22,7 +21,24 @@ import {
 import { EmptyState, ErrorText } from '@/components/common/StatusBadge'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 
-type Mode = 'browser' | 'cookies_file' | 'manual'
+type Mode = 'browser' | 'cookies_file'
+
+/** Realistic User-Agent stubs per detected browser, used to prefill profiles
+ * even when the cookies of that browser cannot be extracted (encrypted). */
+const BROWSER_UA: Record<string, string> = {
+  chrome:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  edge:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0',
+  firefox:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
+  brave:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  opera:
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 OPR/126.0.0.0',
+  safari:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
+}
 
 /** AuthProfilesDialog creates source-auth profiles and tests them. */
 export function AuthProfilesDialog({
@@ -38,18 +54,28 @@ export function AuthProfilesDialog({
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [adding, setAdding] = useState(false)
-  const [mode, setMode] = useState<Mode>('browser')
+  const [mode, setMode] = useState<Mode>('cookies_file')
   const [name, setName] = useState('')
   const [kind, setKind] = useState('')
   const [profileDir, setProfileDir] = useState('')
   const [cookiesTxt, setCookiesTxt] = useState('')
-  const [cookie, setCookie] = useState('')
+  const [cookieFile, setCookieFile] = useState('')
   const [userAgent, setUserAgent] = useState('')
   const [referer, setReferer] = useState('')
   const [testUrl, setTestUrl] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<AuthProfile | null>(null)
   const [testResult, setTestResult] = useState<{ id: string; ok: boolean; text: string } | null>(null)
+
+  /** pickCookiesFile opens the OS file picker and loads a cookies.txt file. */
+  const pickCookiesFile = async (file: File | undefined) => {
+    if (!file) return
+    setCookieFile(file.name)
+    const text = await file.text()
+    setCookiesTxt(text)
+    if (!name) setName(file.name.replace(/\.txt$/i, '') || 'cookies.txt')
+  }
 
   const create = useMutation({
     mutationFn: () =>
@@ -59,7 +85,6 @@ export function AuthProfilesDialog({
         kind: mode === 'browser' ? kind : '',
         profile_dir: mode === 'browser' ? profileDir : '',
         cookies_txt: mode === 'cookies_file' ? cookiesTxt : '',
-        cookie: mode === 'manual' ? cookie : '',
         user_agent: userAgent,
         referer,
       }),
@@ -67,7 +92,7 @@ export function AuthProfilesDialog({
       toast.success(t('auth.created'))
       setName('')
       setCookiesTxt('')
-      setCookie('')
+      setCookieFile('')
       setAdding(false)
       void queryClient.invalidateQueries({ queryKey: ['profiles'] })
     },
@@ -97,7 +122,7 @@ export function AuthProfilesDialog({
   })
 
   const canCreate =
-    mode === 'browser' ? Boolean(kind) : mode === 'cookies_file' ? cookiesTxt.trim().length > 10 : cookie.trim().length > 0
+    mode === 'browser' ? Boolean(kind) : cookiesTxt.trim().length > 10
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,7 +149,6 @@ export function AuthProfilesDialog({
                 <TabsList>
                   <TabsTrigger value="browser">{t('auth.browser')}</TabsTrigger>
                   <TabsTrigger value="cookies_file">{t('auth.file')}</TabsTrigger>
-                  <TabsTrigger value="manual">{t('auth.manual')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="browser" className="space-y-2">
@@ -142,6 +166,10 @@ export function AuthProfilesDialog({
                               setKind(browser.browser)
                               setProfileDir(browser.dir)
                               if (!name) setName(browser.label)
+                              // Prefill a realistic User-Agent from the
+                              // selected browser — works even when the
+                              // cookies cannot be extracted (encrypted).
+                              setUserAgent(BROWSER_UA[browser.browser] ?? '')
                             }}
                             className={`rounded-lg border px-2.5 py-2 text-left text-[11px] transition-colors ${
                               profileDir === browser.dir
@@ -165,7 +193,21 @@ export function AuthProfilesDialog({
                 </TabsContent>
 
                 <TabsContent value="cookies_file" className="space-y-2">
-                  <Label>{t('auth.cookieFile')}</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="shrink-0">{t('auth.cookieFile')}</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".txt,.cookies,text/plain"
+                      className="hidden"
+                      onChange={(e) => void pickCookiesFile(e.target.files?.[0])}
+                    />
+                    <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()}>
+                      <FileUp className="h-3.5 w-3.5" />
+                      {t('auth.chooseFile')}
+                    </Button>
+                    {cookieFile ? <span className="truncate text-[10px] text-slate-400">{cookieFile}</span> : null}
+                  </div>
                   <Textarea
                     rows={5}
                     value={cookiesTxt}
@@ -174,17 +216,6 @@ export function AuthProfilesDialog({
                     className="font-mono text-[11px]"
                   />
                   <p className="text-[10px] text-slate-500">{t('auth.importHint')}</p>
-                </TabsContent>
-
-                <TabsContent value="manual" className="space-y-2">
-                  <Label>{t('auth.cookie')}</Label>
-                  <Textarea
-                    rows={3}
-                    value={cookie}
-                    onChange={(e) => setCookie(e.target.value)}
-                    placeholder="sid=abc123; token=…"
-                    className="font-mono text-[11px]"
-                  />
                 </TabsContent>
               </Tabs>
 
@@ -195,11 +226,13 @@ export function AuthProfilesDialog({
                 </div>
                 <div className="space-y-1">
                   <Label>{t('auth.userAgent')}</Label>
-                  <Input value={userAgent} onChange={(e) => setUserAgent(e.target.value)} className="h-8 text-xs" />
+                  <Input value={userAgent} onChange={(e) => setUserAgent(e.target.value)} className="h-8 font-mono text-[10px]" />
+                  {!userAgent ? <p className="text-[10px] text-slate-500">{t('auth.uaHint')}</p> : null}
                 </div>
                 <div className="space-y-1">
                   <Label>{t('auth.referer')}</Label>
-                  <Input value={referer} onChange={(e) => setReferer(e.target.value)} className="h-8 text-xs" />
+                  <Input value={referer} onChange={(e) => setReferer(e.target.value)} placeholder="https://" className="h-8 text-xs" />
+                  {!referer ? <p className="text-[10px] text-slate-500">{t('auth.refererHint')}</p> : null}
                 </div>
               </div>
 

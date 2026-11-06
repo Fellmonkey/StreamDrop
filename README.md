@@ -1,238 +1,133 @@
-# StreamDrop Desktop v1
+# StreamDrop Desktop
 
-Локальный десктоп-сервис, который переливает файл из интернета прямо в облако:
-поток идёт `HTTP → ОЗУ → rclone rcat`, полезные данные **не пишутся на диск**.
-Интерфейс — одностраничное приложение, отдаваемое тем же процессом на
-`127.0.0.1`. Закрытие вкладки не прерывает передачу: сервис живёт в трее.
+**Your helper for moving files between the internet and clouds** — without writing to disk and without extra servers.
 
-- **Платформа-эталон:** Windows 10/11 x64 (portable ZIP, без консольного окна).
-- **Стек:** Go 1.27 (chi, modernc SQLite, goose, systray), React 19 + Vite + Tailwind.
-- **Сеть:** только loopback; API защищён одноразовым токеном и проверкой Origin.
+The stream goes `HTTP → RAM → rclone rcat`: large files travel from the web straight into cloud storage, bypassing the drive. The UI opens in a browser at `127.0.0.1`; closing the tab doesn't interrupt transfers — the service keeps running in the tray.
 
-## Возможности
+> Русская версия: [`README.ru.md`](README.ru.md)
 
-- Предполётная инспекция ссылки: редиректы (до 10), HEAD → Range-GET,
-  `Content-Disposition`, имя из URL, размер, тип, флаг HTML.
-- Два режима: `ring_buffer` (настраиваемый буфер 32–1024 MiB) и `pure_stream`.
-- Движки: `curl`, `yt-dlp` и встроенный Go-источник (fallback для `auto`).
-- Очередь: лимит параллелизма 1–5, ручной порядок, пауза очереди и задачи.
-- Retry с экспоненциальной задержкой; докачка по `Range`, если источник её
-  поддерживает, иначе полный перезапуск с очисткой объекта в облаке.
-- SHA-256 на лету (без повторного чтения), лимиты скорости, ETA, спарклайны.
-- Облака: Mail.ru (WebDAV), Яндекс.Диск, Google Drive, OneDrive, S3, WebDAV,
-  FTP, SFTP; проводник по папкам, квоты, создание папок, OAuth на фиксированном
-  порту `127.0.0.1:35357`.
-- Профили авторизации источника: cookies браузера, импорт Netscape
-  `cookies.txt`, ручная строка Cookie + User-Agent/Referer.
-- Менеджер компонентов (rclone / yt-dlp / curl) с атомарной установкой и
-  проверкой SHA-256.
-- Уведомления: системные toast + Telegram (токен шифруется, URL и логины в
-  сообщения не попадают).
-- Самообновление с GitHub Releases (SHA-256; подпись — если настроен ключ),
-  применение при следующем запуске.
-- Локальные crash-дампы (включаются в настройках, без секретов).
-- Локализация ru/en, форматирование через `Intl`, ошибки по кодам.
+## For whom and why
 
-## Быстрый старт (Windows)
+This is a **personal tool**, not an enterprise platform: your files, your home network, your computer. StreamDrop solves one task — “move a file where it's needed without occupying disk space and without intermediate steps”.
+
+The classic flow is: download to disk → wait → upload to cloud. StreamDrop does this **in one pass**:
+
+- data flows through RAM — **the drive doesn't wear out** and doesn't fill up;
+- **no free space needed** for a temporary file, even for a multi-gigabyte ISO;
+- parallelism and the queue make transfer **in batches** convenient — not only for big files, but also when there are many of them;
+- everything is controlled from one window; status and speed are visible even in the tray.
+
+Honest caveats:
+
+- Speed is still limited by your internet channel and the cloud provider.
+- Time savings matter where the disk is slower than the channel; with a fast NVMe, the benefit is mainly wear and convenience.
+- It is not a universal downloader: direct file links, HTML pages (via yt-dlp) and a limited set of protocols are supported.
+
+**The idea is broader than “download to cloud”.** The project's foundation is rclone, which natively moves data between any pair of storages: cloud → cloud, local disk → cloud, and so on. StreamDrop unlocks this gradually: today the internet → cloud scenario is available; the next steps are “another cloud” and “local folder” sources, so files can be moved without making the PC an intermediate (see roadmap).
+
+## Features
+
+- Pre-flight inspection: redirects, HEAD → Range-GET, filename/size/type, HTML detection.
+- Two modes: `ring_buffer` (32–1024 MiB) and `pure_stream`; engines `curl` / `yt-dlp` / built-in.
+- Queue: parallelism 1–5, manual ordering, pause, retry, `Range` resume, on-the-fly SHA-256.
+- Clouds: Mail.ru (WebDAV), Yandex.Disk, Google Drive, OneDrive, S3, WebDAV, FTP, SFTP; explorer, quotas, folder creation. OAuth on `127.0.0.1:35357`.
+- Source authorization profiles: browser cookies (Windows), `cookies.txt` import, User-Agent/Referer.
+- Components (rclone / yt-dlp / curl) install automatically with SHA-256 verification.
+- Notifications: toasts + Telegram.
+- Self-update from GitHub Releases.
+- “Saved” metrics: bytes never written to disk; the time a disk round-trip would have taken; rewrite capacity.
+- ru/en localization.
+
+## Quick start (Windows)
 
 ```bash
-make build-windows          # соберёт web/dist и bin/streamdrop.exe
-./bin/streamdrop.exe        # откроет http://127.0.0.1:8085
+make build-windows            # web/dist + bin/streamdrop.exe
+./bin/streamdrop.exe          # opens http://127.0.0.1:8085
 ```
 
-Если порт 8085 занят, берётся следующий свободный (8086, 8087, …); фактический
-адрес пишется в лог и показывается в интерфейсе.
+If the port is busy, the next free one is used; the address is logged. Components are downloaded on first run.
 
-Portable-режим: положите компоненты рядом с бинарником в
-`deps/<id>/<version>/` (`rclone.exe`, `yt-dlp.exe`, `curl.exe`). Такой каталог
-имеет приоритет над `%LOCALAPPDATA%\StreamDrop\deps`. Иначе компоненты
-скачиваются из интерфейса (кнопка «Компоненты»).
+## Build
 
-## Сборка
-
-Требования: Go 1.27, Node.js 22+, npm.
+Requirements: Go 1.27, Node.js 22+, npm.
 
 ```bash
 cd web && npm ci && npm run build && cd ..
 go build -trimpath -ldflags "-s -w -H=windowsgui" -o bin/streamdrop.exe ./cmd/streamdrop
 ```
 
-Иконка Windows-приложения встраивается через ресурс-файл
-`cmd/streamdrop/rsrc_windows_amd64.syso` (генерируется `rsrc -ico
-internal/assets/icon.ico -o cmd/streamdrop/rsrc_windows_amd64.syso`); при
-смене логотипа пересоберите его перед `go build`.
+The frontend must be built before `go build` (`web/embed.go`). Icon: `cmd/streamdrop/rsrc_windows_amd64.syso`.
 
-Фронтенд обязан собираться **до** `go build`: `web/embed.go` встраивает
-`web/dist` через `go:embed`.
+## Configuration
 
-Полезные цели `Makefile`: `web`, `build`, `build-windows`, `test`, `vet`,
-`depcheck`, `run`, `package`, `clean`.
+| Flag | Default | Purpose |
+| :--- | :--- | :--- |
+| `--port` | `8085` | UI port |
+| `--host` | `127.0.0.1` | loopback only |
+| `--data-dir` | `%LOCALAPPDATA%\StreamDrop` | DB, logs, components |
+| `--no-tray` | off | no tray icon |
+| `--no-browser` | off | do not open the browser |
+| `--update-repo` | `streamdrop/streamdrop` | GitHub owner/repo |
 
-## Запуск и конфигурация
+Data: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`.
 
-Приоритет источников: значения по умолчанию → `config.json` → переменные
-окружения → флаги.
+## Security
 
-| Флаг | Env | По умолчанию | Назначение |
-| :--- | :--- | :--- | :--- |
-| `--port` | `STREAMDROP_PORT` | `8085` | предпочитаемый порт UI |
-| `--host` | `STREAMDROP_HOST` | `127.0.0.1` | только loopback |
-| `--data-dir` | `STREAMDROP_DATA_DIR` | `%LOCALAPPDATA%\StreamDrop` | БД, логи, компоненты |
-| `--config` | — | `<data-dir>/config.json` | JSON-конфигурация |
-| `--no-tray` | `STREAMDROP_NO_TRAY=1` | выкл. | без иконки в трее |
-| `--no-browser` | — | выкл. | не открывать браузер |
-| `--update-repo` | `STREAMDROP_UPDATE_REPO` | `streamdrop/streamdrop` | GitHub owner/repo |
-| `--log-level` | `STREAMDROP_LOG_LEVEL` | `info` | debug/info/warn/error |
-| `--version` | — | — | печать версии |
+Loopback only; REST protected by a per-run token and Origin/Host checks; secrets encrypted (DPAPI / AES-256-GCM); no telemetry; the API never returns secrets — not in logs, not in responses.
 
-`STREAMDROP_CONSOLE_LOG=1` дублирует лог в stdout (удобно при отладке; в
-релизной сборке консоли нет). Ключи `config.json`: `port`, `host`, `data_dir`,
-`no_tray`, `open_browser`, `update_repo`, `log_level`, `oauth_callback_port`.
+## Limitations (honest)
 
-### Где лежат данные
+- **Reference platform is Windows 10/11 x64**; macOS/Linux build but are not reference releases.
+- **Google Drive / OneDrive** require your own OAuth app (instructions inside the wizard); **Yandex.Disk** uses a verification-code flow.
+- Chromium 127+ (App-Bound Encryption) cannot be read by a third-party process — use `cookies.txt`.
+- No resume after process death and no recursive cloud-wide search.
+- Updates are verified by SHA-256; signature only when a key is configured.
 
-`%LOCALAPPDATA%\StreamDrop\`:
+## Roadmap
 
-- `streamdrop.db` — SQLite (настройки, история, подключения, токены);
-- `logs\` — журнал с ротацией (10 MB × 5);
-- `deps\<id>\<version>\` — установленные компоненты;
-- `crash\` — локальные пакеты диагностики;
-- `update\staging\` — скачанные обновления.
+Priorities, no dates promised:
 
-## Безопасность
+1. **Full Linux/macOS support** — reference builds, installers, self-update.
+2. **Sources: another cloud and a local folder** — cloud → cloud, disk → cloud, and back. The mechanics already exist in rclone (remote-to-remote); only source wiring in the UI is needed.
+3. **Torrent / magnet sources** — streaming without full download.
+4. **Telegram** — queue control from chat, per-file events, status on demand.
+5. **Schedules (cron)** — “grab Friday's release”.
+6. **WebDAV server as a destination** — receive files from other tools.
+7. **Recursive search and filters** across the cloud.
+8. **Proxy/VPN modes** for sources.
 
-- Сервер слушает только `127.0.0.1` (валидация хоста).
-- Токен создаётся при старте, встраивается в `index.html` как
-  `<meta name="streamdrop-token">`; REST требует `X-StreamDrop-Token`,
-  WebSocket — `?token=`.
-- `LocalGuard` проверяет Host, Origin и `Sec-Fetch-Site`; CORS без wildcard.
-- Секреты (пароли облаков, cookies, OAuth-токены, Telegram) шифруются:
-  DPAPI на Windows, AES-256-GCM с ключом от machine-id на POSIX.
-- API никогда не возвращает секреты: только маски и признаки наличия.
-- Телеметрии нет; crash-дампы остаются локальными и не содержат секретов.
-- Telegram-сообщения не включают URL источников и логины.
+Deliberately not planned: telemetry, browser push notifications, mobile clients.
 
-## Компоненты
-
-| Компонент | Версия | Лицензия | Роль |
-| :--- | :--- | :--- | :--- |
-| rclone | v1.68.2 | MIT | загрузка (rcat), RC-демон, проводник, квоты |
-| yt-dlp | 2025.09.26 | Unlicense | разбор HTML/медиа-ссылок |
-| curl | 8.23.0 | curl | прямой HTTP-стрим и HEAD-пробы |
-
-Контрольные суммы SHA-256 закреплены для `windows/amd64` (архив и бинарник) и
-проверяются `cmd/depcheck`; для остальных платформ компонент устанавливается с
-пометкой `checksum_not_pinned` (честный `verified=false`). rclone обязателен,
-yt-dlp и curl — опциональны (встроенный Go-источник закрывает `auto`).
+## Tests
 
 ```bash
-# Проверка скачанных архивов и распакованных бинарников
-go run ./cmd/depcheck -os windows -arch amd64 -staging <dir> -deps <deps-dir>
-```
-
-## Тесты и проверки
-
-```bash
-go test ./...            # юнит-тесты всех пакетов
+go test ./...
 go vet ./...
-cd web && npm ci && npm run build   # tsc --noEmit + vite build
+cd web && npm ci && npm run build
 ```
 
-Ключевые тесты:
+Key suites: pipeline with fake `curl`/`rclone` (bytes, SHA-256, no files on disk), PKCE/sessions, LocalGuard, wear metrics, e2e against Mail.ru, Playwright UI scenarios.
 
-- `internal/engine` — инварианты кольцевого буфера, инспектор, парсеры
-  заголовков, а также сквозной пайплайн с фейковыми `curl`/`rclone`:
-  совпадение байт, SHA-256 и **отсутствие файлов на диске**; рестарт при
-  источнике без Range.
-- `internal/deps` — каталог, платформенные пины, извлечение архивов (включая
-  мног файловый curl), проверка хешей.
-- `internal/queue` — лимит параллелизма и отсутствие переподписки.
-- `internal/oauth` — PKCE (RFC-вектор), одноразовые сессии, колбэк на
-  эфемерном порту.
-- `internal/server/middleware` — отказ внешнему Origin и запросу без токена.
-- `internal/stats` — золотые значения износа (1480 ГиБ).
-- `internal/security` — round-trip шифрования секретов.
-- `internal/e2e` — реальные смоуки против Mail.ru: подключение/проводник/
-  mkdir (`.env`: `MAILRU_USER/MAILRU_PASS`), метрики success-rate после
-  pre-flight и гарантированная очистка частичных объектов при abort.
+## Release status
 
-Браузерная интеграция (Playwright, `web/e2e-integration`): 16 сценариев —
-инспекция ISO/HTML, трансляции до завершения с SHA-256, пауза/резюм/отмена,
-очередь, проводник, подключения, история/настройки, онбординг, темы, reload
-страницы во время передачи (передача не прерывается, snapshot восстанавливается).
+v1 functionality is implemented and covered by tests. For the first public release, only this remains: a `v*` tag, CI building of the release archive, and publishing to GitHub Releases.
 
-```bash
-cd web && npm run test:e2e:integration   # требует запущенное приложение и .env с креденшелами Mail.ru
-```
-
-CI: `.github/workflows/ci.yml` (сборка SPA, vitest-контракты, vet, тесты,
-матрица 6 таргетов, `depcheck`). Релиз-пайплайн (ZIP, публикация по тегу
-`v*`) — следующий шаг дистрибуции.
-
-## Ограничения v1
-
-- OAuth для Google Drive/OneDrive требует собственных client id/secret, если
-  провайдер их не предоставляет; Яндекс.Диск можно подключить токеном.
-- Автоизвлечение cookies: Chromium 127+ использует App-Bound Encryption, ключ
-  недоступен стороннему процессу — используйте `cookies.txt` или ручной Cookie.
-  Firefox (NSS) поддерживается best-effort.
-- Подпись обновлений проверяется только при наличии настроенного публичного
-  ключа; по умолчанию контролируется SHA-256.
-- Пины контрольных сумм покрывают `windows/amd64`; другие платформы —
-  best-effort.
-- Ручной smoke против реальных Mail.ru/Яндекс/Drive/OneDrive требует
-  пользовательских учётных данных и в этой среде не выполнялся.
-
-## FAQ
-
-**Файл показал 100% загрузки, а в облаке его нет / «0 байт подтверждено».**
-Облако подтверждает запись с задержкой (индексация WebDAV). Если в карточке
-передачи зелёный сегмент ещё не вырос — файл уже отправлен, но ещё не
-подтверждён. Обычно это занимает до нескольких минут. См. янтарный баннер в UI.
-
-**Прервал передачу — статус «Завершено».** Это был баг гонки; исправлено:
-если задача отменена, статус всегда `Прервано`, а частичный объект удаляется
-из облака (проверяется автотестом).
-
-**Telegram: «неверные данные», хотя токен и username верные.** В поле
-«ID вашего пользователя» нужно указывать **числовой ID** (например,
-123456789), а не username бота. Получить: напишите боту `/start`, затем
-@userinfobot. @username бота не является chat_id.
-
-**Зачем «Обновить» у компонентов?** Кнопка появляется только когда
-установленная версия не совпадает с каталогом (устарела). Для актуальных
-компонентов её нет.
-
-**Дистрибутив без компонентов — это нормально?** Да: rclone/yt-dlp/curl
-скачиваются автоматически при первом запуске (шаг «Установка компонентов»),
-проверяются по SHA-256 и переиспользуются; включать их в ZIP не требуется —
-это лишь раздувание размера.
-
-## Вне v1
-
-Сознательно не входит (см. `implementation_plan.md`, Scope Guard): мобильные
-клиенты, доступ из локальной сети и мультипользовательские профили, прокси/VPN
-режимы, cron-расписания, torrent/magnet, WebDAV-сервер как назначение,
-рекурсивный поиск по всему облаку, докачка после смерти процесса, новые языки,
-MSI-установщик, телеметрия и браузерные push-уведомления.
-
-## Структура
+## Layout
 
 ```
-cmd/streamdrop      запуск сервиса
-cmd/depcheck        проверка целостности компонентов (CI)
-internal/app        сборка контейнера, порт, graceful shutdown, tray
-internal/config     конфигурация
-internal/engine     буфер, инспектор, пайплайн, процессы, gate
-internal/transfer   задачи, retry, метрики, очистка
-internal/queue      планировщик
-internal/rclone     RC-клиент, демон, проводник, provisioner
-internal/deps       каталог, установка, проверка
-internal/auth       cookies, профили браузеров
-internal/oauth      PKCE-сессии и колбэк
+cmd/streamdrop      service entry point
+cmd/depcheck        component integrity check
+internal/app        container, port, tray, graceful shutdown
+internal/engine     buffer, inspector, pipeline
+internal/transfer   tasks, retry, metrics
+internal/queue      scheduler
+internal/rclone     RC client, daemon, explorer, provisioner
+internal/deps       component catalog
+internal/auth       cookies, browser profiles
+internal/oauth      OAuth sessions
 internal/notify     toast + Telegram
-internal/update     проверка и применение обновлений
-internal/ws         WebSocket-хаб и snapshot
-internal/server     REST, middleware, встроенная статика
+internal/update     updates
+internal/ws         WebSocket hub
+internal/server     REST + embedded static
 web                 React SPA (Vite, Tailwind, i18n ru/en)
 ```

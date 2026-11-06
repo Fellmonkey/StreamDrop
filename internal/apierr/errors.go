@@ -27,30 +27,32 @@ const (
 type Code string
 
 const (
-	CodeInspectFailed         Code = "inspect_failed"
-	CodeInspectHTTPError      Code = "inspect_http_error"
-	CodeInspectRedirectLimit  Code = "inspect_redirect_limit"
-	CodeInspectHTMLSource     Code = "inspect_html_source"
-	CodeInspectNotHeadSupport Code = "inspect_not_head_supported"
-	CodeSourceUnreachable     Code = "source_unreachable"
-	CodeSourceInterrupted     Code = "source_interrupted"
-	CodeAuthRequired          Code = "auth_required"
-	CodeAuthRejected          Code = "auth_rejected"
-	CodeAuthTokenExpired      Code = "auth_token_expired"
-	CodeAuthOAuthRequired     Code = "auth_oauth_required"
-	CodeCloudUnreachable      Code = "cloud_unreachable"
-	CodeCloudQuotaExceeded    Code = "cloud_quota_exceeded"
-	CodeCloudWriteFailed      Code = "cloud_write_failed"
-	CodeCloudCleanupFailed    Code = "cloud_cleanup_failed"
-	CodeEngineUnavailable     Code = "engine_unavailable"
-	CodeDependencyMissing     Code = "dependency_missing"
-	CodeDependencyCorrupted   Code = "dependency_corrupted"
-	CodeTransferAborted       Code = "transfer_aborted"
-	CodeQueuePaused           Code = "queue_paused"
-	CodeRemoteNotFound        Code = "remote_not_found"
-	CodeValidationFailed      Code = "validation_failed"
-	CodeTelegramChatInvalid   Code = "telegram_chat_invalid"
-	CodeLocalAuthRequired     Code = "local_auth_required"
+	CodeInspectFailed          Code = "inspect_failed"
+	CodeInspectHTTPError       Code = "inspect_http_error"
+	CodeInspectRedirectLimit   Code = "inspect_redirect_limit"
+	CodeInspectHTMLSource      Code = "inspect_html_source"
+	CodeInspectNotHeadSupport  Code = "inspect_not_head_supported"
+	CodeSourceUnreachable      Code = "source_unreachable"
+	CodeSourceInterrupted      Code = "source_interrupted"
+	CodeAuthRequired           Code = "auth_required"
+	CodeAuthRejected           Code = "auth_rejected"
+	CodeAuthTokenExpired       Code = "auth_token_expired"
+	CodeAuthOAuthRequired      Code = "auth_oauth_required"
+	CodeAuthClientNotEnabled   Code = "auth_client_not_enabled"
+	CodeCloudUnreachable       Code = "cloud_unreachable"
+	CodeCloudGoogleAPIDisabled Code = "cloud_google_api_disabled"
+	CodeCloudQuotaExceeded     Code = "cloud_quota_exceeded"
+	CodeCloudWriteFailed       Code = "cloud_write_failed"
+	CodeCloudCleanupFailed     Code = "cloud_cleanup_failed"
+	CodeEngineUnavailable      Code = "engine_unavailable"
+	CodeDependencyMissing      Code = "dependency_missing"
+	CodeDependencyCorrupted    Code = "dependency_corrupted"
+	CodeTransferAborted        Code = "transfer_aborted"
+	CodeQueuePaused            Code = "queue_paused"
+	CodeRemoteNotFound         Code = "remote_not_found"
+	CodeValidationFailed       Code = "validation_failed"
+	CodeTelegramChatInvalid    Code = "telegram_chat_invalid"
+	CodeLocalAuthRequired      Code = "local_auth_required"
 
 	// Extension codes. They exist in the catalog below just like the codes
 	// from the specification so that every code a REST response can carry is
@@ -67,31 +69,33 @@ type Spec struct {
 
 // Catalog is the single source of truth for response codes.
 var Catalog = map[Code]Spec{
-	CodeInspectFailed:         {http.StatusBadGateway, KindSource},
-	CodeInspectHTTPError:      {http.StatusBadGateway, KindSource},
-	CodeInspectRedirectLimit:  {http.StatusBadGateway, KindSource},
-	CodeInspectHTMLSource:     {http.StatusUnprocessableEntity, KindSource},
-	CodeInspectNotHeadSupport: {http.StatusBadGateway, KindSource},
-	CodeSourceUnreachable:     {http.StatusBadGateway, KindNetwork},
-	CodeSourceInterrupted:     {http.StatusBadGateway, KindNetwork},
-	CodeAuthRequired:          {http.StatusUnauthorized, KindAuth},
-	CodeAuthRejected:          {http.StatusUnauthorized, KindAuth},
-	CodeAuthTokenExpired:      {http.StatusUnauthorized, KindAuth},
-	CodeAuthOAuthRequired:     {http.StatusUnauthorized, KindAuth},
-	CodeCloudUnreachable:      {http.StatusBadGateway, KindCloud},
-	CodeCloudQuotaExceeded:    {http.StatusInsufficientStorage, KindCloud},
-	CodeCloudWriteFailed:      {http.StatusBadGateway, KindCloud},
-	CodeCloudCleanupFailed:    {http.StatusInternalServerError, KindCloud},
-	CodeEngineUnavailable:     {http.StatusServiceUnavailable, KindSource},
-	CodeDependencyMissing:     {http.StatusServiceUnavailable, KindSource},
-	CodeDependencyCorrupted:   {http.StatusServiceUnavailable, KindSource},
-	CodeTransferAborted:       {499, KindAborted},
-	CodeQueuePaused:           {http.StatusConflict, KindAborted},
-	CodeRemoteNotFound:        {http.StatusNotFound, KindCloud},
-	CodeValidationFailed:      {http.StatusBadRequest, KindSource},
-	CodeLocalAuthRequired:     {http.StatusUnauthorized, KindAuth},
-	CodeInternalError:         {http.StatusInternalServerError, KindSource},
-	CodeNotFound:              {http.StatusNotFound, KindSource},
+	CodeInspectFailed:          {http.StatusBadGateway, KindSource},
+	CodeInspectHTTPError:       {http.StatusBadGateway, KindSource},
+	CodeInspectRedirectLimit:   {http.StatusBadGateway, KindSource},
+	CodeInspectHTMLSource:      {http.StatusUnprocessableEntity, KindSource},
+	CodeInspectNotHeadSupport:  {http.StatusBadGateway, KindSource},
+	CodeSourceUnreachable:      {http.StatusBadGateway, KindNetwork},
+	CodeSourceInterrupted:      {http.StatusBadGateway, KindNetwork},
+	CodeAuthRequired:           {http.StatusUnauthorized, KindAuth},
+	CodeAuthRejected:           {http.StatusUnauthorized, KindAuth},
+	CodeAuthTokenExpired:       {http.StatusUnauthorized, KindAuth},
+	CodeAuthOAuthRequired:      {http.StatusUnauthorized, KindAuth},
+	CodeAuthClientNotEnabled:   {http.StatusUnauthorized, KindAuth},
+	CodeCloudUnreachable:       {http.StatusBadGateway, KindCloud},
+	CodeCloudGoogleAPIDisabled: {http.StatusBadGateway, KindCloud},
+	CodeCloudQuotaExceeded:     {http.StatusInsufficientStorage, KindCloud},
+	CodeCloudWriteFailed:       {http.StatusBadGateway, KindCloud},
+	CodeCloudCleanupFailed:     {http.StatusInternalServerError, KindCloud},
+	CodeEngineUnavailable:      {http.StatusServiceUnavailable, KindSource},
+	CodeDependencyMissing:      {http.StatusServiceUnavailable, KindSource},
+	CodeDependencyCorrupted:    {http.StatusServiceUnavailable, KindSource},
+	CodeTransferAborted:        {499, KindAborted},
+	CodeQueuePaused:            {http.StatusConflict, KindAborted},
+	CodeRemoteNotFound:         {http.StatusNotFound, KindCloud},
+	CodeValidationFailed:       {http.StatusBadRequest, KindSource},
+	CodeLocalAuthRequired:      {http.StatusUnauthorized, KindAuth},
+	CodeInternalError:          {http.StatusInternalServerError, KindSource},
+	CodeNotFound:               {http.StatusNotFound, KindSource},
 }
 
 // Error is the error value all internal layers return when they need to

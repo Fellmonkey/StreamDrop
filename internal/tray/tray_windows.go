@@ -5,6 +5,7 @@ package tray
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/energye/systray"
 )
@@ -12,6 +13,8 @@ import (
 var toastImpl = &windowsToast{}
 
 func available() bool { return true }
+
+const idleStatusTitle = "No active transfers"
 
 // start launches the tray. systray.Run blocks, so it lives in its own goroutine
 // and is stopped explicitly when the context ends.
@@ -27,6 +30,7 @@ func start(ctx context.Context, cb Callbacks) {
 			})
 		}
 
+		var statusItem *systray.MenuItem
 		systray.Run(func() {
 			systray.SetTitle("StreamDrop")
 			systray.SetTooltip("StreamDrop — stream to cloud")
@@ -36,8 +40,8 @@ func start(ctx context.Context, cb Callbacks) {
 
 			open := systray.AddMenuItem("Open StreamDrop", "Open the desktop app window")
 			openBrowser := systray.AddMenuItem("Open in browser", "Open the web interface in your default browser")
-			pause := systray.AddMenuItem("Pause queue", "Pause active transfers")
-			resume := systray.AddMenuItem("Resume queue", "Resume the transfer queue")
+			statusItem = systray.AddMenuItem(idleStatusTitle, "Active transfer progress and speed")
+			statusItem.Disable()
 			systray.AddSeparator()
 			quit := systray.AddMenuItem("Quit", "Stop StreamDrop and exit")
 
@@ -51,21 +55,31 @@ func start(ctx context.Context, cb Callbacks) {
 					cb.OnOpenBrowser()
 				}
 			})
-			pause.Click(func() {
-				if cb.OnPause != nil {
-					cb.OnPause()
-				}
-			})
-			resume.Click(func() {
-				if cb.OnResume != nil {
-					cb.OnResume()
-				}
-			})
 			quit.Click(quitApp)
 		}, func() {})
 
-		<-ctx.Done()
-		quitApp()
+		// Update the status line while the tray runs.
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				quitApp()
+				return
+			case <-ticker.C:
+				if statusItem == nil || cb.Summary == nil {
+					continue
+				}
+				s := cb.Summary()
+				if s == "" {
+					statusItem.SetTitle(idleStatusTitle)
+					statusItem.Disable()
+				} else {
+					statusItem.SetTitle(s)
+					statusItem.Enable()
+				}
+			}
+		}
 	}()
 }
 

@@ -34,6 +34,12 @@ func (p *Provisioner) Provision(ctx context.Context, cfg RemoteConfig) error {
 	if err != nil {
 		return err
 	}
+	if isOAuthBackend(providerType) {
+		if err := p.provisionOAuth(ctx, cfg.RcloneName, providerType, params); err != nil {
+			return apierr.Wrap(apierr.CodeCloudUnreachable, err, map[string]any{"remote": cfg.Name})
+		}
+		return nil
+	}
 	if err := p.RC.ConfigCreate(ctx, cfg.RcloneName, providerType, params); err != nil {
 		// A remote that already exists is updated instead of failing the task.
 		if updateErr := p.RC.ConfigUpdate(ctx, cfg.RcloneName, params); updateErr == nil {
@@ -42,6 +48,81 @@ func (p *Provisioner) Provision(ctx context.Context, cfg RemoteConfig) error {
 		return apierr.Wrap(apierr.CodeCloudUnreachable, err, map[string]any{"remote": cfg.Name})
 	}
 	return nil
+}
+
+// provisionOAuth creates an OAuth backend without triggering rclone's
+// interactive wizard / local auth webserver (port 53682). Non-interactive mode
+// returns questions; we answer them, keeping the token we already provide.
+func (p *Provisioner) provisionOAuth(ctx context.Context, name, providerType string, params map[string]string) error {
+	out, err := p.RC.ConfigCreateNonInteractive(ctx, name, providerType, params)
+	if err != nil {
+		// The remote may already exist -> try updating it the same way.
+		if out2, uerr := p.answerOAuthQuestions(ctx, name, providerType, params, out, true); uerr == nil {
+			_ = out2
+			return nil
+		}
+		return err
+	}
+	_, err = p.answerOAuthQuestions(ctx, name, providerType, params, out, false)
+	return err
+}
+
+// answerOAuthQuestions drives the config wizard to completion. The only
+// question we deliberately answer "no" to is replacing the already-provided
+// token — that is what skips the browser/webserver flow.
+func (p *Provisioner) answerOAuthQuestions(ctx context.Context, name, providerType string, params map[string]string, out map[string]any, isUpdate bool) (map[string]any, error) {
+	for i := 0; i < 10; i++ {
+		state, _ := out["state"].(string)
+		if state == "" {
+			return out, nil
+		}
+		result := "true"
+		if state == "*oauth-confirm" || strings.Contains(state, "oauth-confirm") {
+			// Keep the token we supplied; do not open the wizard.
+			result = "false"
+		}
+		var next map[string]any
+		var err error
+		if isUpdate {
+			next, err = p.answerUpdate(ctx, name, params, state, result)
+		} else {
+			next, err = p.RC.ConfigContinue(ctx, name, params, state, result)
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = next
+	}
+	return nil, fmt.Errorf("config wizard did not finish for %q", name)
+}
+
+// answerUpdate continues an in-progress config/update wizard.
+func (p *Provisioner) answerUpdate(ctx context.Context, name string, params map[string]string, state, result string) (map[string]any, error) {
+	raw, err := p.RC.Call(ctx, "config/update", map[string]any{
+		"name":       name,
+		"parameters": params,
+		"opt": map[string]any{
+			"continue": true,
+			"state":    state,
+			"result":   result,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func isOAuthBackend(providerType string) bool {
+	switch providerType {
+	case "drive", "yandex":
+		return true
+	}
+	return false
 }
 
 // Remove drops the remote from the daemon.
@@ -92,6 +173,12 @@ func BuildParameters(provider string, opts map[string]string) (string, map[strin
 		params["token"] = get("token", "")
 		if params["token"] == "" {
 			return "", nil, apierr.New(apierr.CodeAuthOAuthRequired, map[string]any{"provider": "yandex"})
+		}
+		if v := get("client_id", ""); v != "" {
+			params["client_id"] = v
+		}
+		if v := get("client_secret", ""); v != "" {
+			params["client_secret"] = v
 		}
 		return "yandex", params, nil
 

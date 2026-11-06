@@ -4,16 +4,23 @@ import "sync"
 
 // Provider describes an OAuth-enabled cloud provider.
 type Provider struct {
-	ID            string            `json:"id"`
-	Label         string            `json:"label"`
-	RcloneType    string            `json:"rclone_type"`
-	AuthURL       string            `json:"auth_url"`
-	TokenURL      string            `json:"token_url"`
-	Scopes        []string          `json:"scopes"`
-	ClientID      string            `json:"client_id,omitempty"`
-	ClientSecret  string            `json:"-"`
-	NeedsClientID bool              `json:"needs_client_id"`
-	ExtraParams   map[string]string `json:"-"`
+	ID            string   `json:"id"`
+	Label         string   `json:"label"`
+	RcloneType    string   `json:"rclone_type"`
+	AuthURL       string   `json:"auth_url"`
+	TokenURL      string   `json:"token_url"`
+	Scopes        []string `json:"scopes"`
+	ClientID      string   `json:"client_id,omitempty"`
+	ClientSecret  string   `json:"-"`
+	NeedsClientID bool     `json:"needs_client_id"`
+	// ManualCode providers (Yandex) do not support loopback redirects: the
+	// authorization code is displayed on a verification page and the user
+	// copies it back into the app.
+	ManualCode bool `json:"-"`
+	// RegisterURL is where a user creates their own OAuth app when the
+	// provider does not ship a built-in public client.
+	RegisterURL string            `json:"register_url,omitempty"`
+	ExtraParams map[string]string `json:"-"`
 }
 
 // ProviderView is the API form. Client secrets never leave the process.
@@ -23,6 +30,8 @@ type ProviderView struct {
 	RcloneType    string   `json:"rclone_type"`
 	Scopes        []string `json:"scopes"`
 	NeedsClientID bool     `json:"needs_client_id"`
+	RegisterURL   string   `json:"register_url,omitempty"`
+	NeedsCode     bool     `json:"needs_code,omitempty"`
 }
 
 // Registry holds the configured providers.
@@ -48,6 +57,7 @@ func NewRegistry() *Registry {
 			TokenURL:      "https://oauth2.googleapis.com/token",
 			Scopes:        []string{"https://www.googleapis.com/auth/drive"},
 			NeedsClientID: true,
+			RegisterURL:   "https://console.cloud.google.com/apis/credentials",
 			ExtraParams:   map[string]string{"access_type": "offline", "prompt": "consent"},
 		},
 		{
@@ -58,6 +68,7 @@ func NewRegistry() *Registry {
 			TokenURL:      "https://login.microsoftonline.com/common/oauth2/v2.0/token",
 			Scopes:        []string{"Files.ReadWrite", "offline_access"},
 			NeedsClientID: true,
+			RegisterURL:   "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade",
 			ExtraParams:   map[string]string{"response_mode": "query"},
 		},
 		{
@@ -68,6 +79,8 @@ func NewRegistry() *Registry {
 			TokenURL:      "https://oauth.yandex.ru/token",
 			Scopes:        []string{"cloud_api:disk.read", "cloud_api:disk.write", "cloud_api:disk.info"},
 			NeedsClientID: true,
+			ManualCode:    true,
+			RegisterURL:   "https://oauth.yandex.ru/client/new",
 		},
 	}
 	return r
@@ -89,6 +102,7 @@ func (r *Registry) Views() []ProviderView {
 		out = append(out, ProviderView{
 			ID: p.ID, Label: p.Label, RcloneType: p.RcloneType,
 			Scopes: p.Scopes, NeedsClientID: p.NeedsClientID,
+			RegisterURL: p.RegisterURL, NeedsCode: p.ManualCode,
 		})
 	}
 	return out

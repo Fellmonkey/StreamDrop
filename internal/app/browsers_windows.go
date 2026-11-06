@@ -16,9 +16,9 @@ type BrowserInfo struct {
 }
 
 var browserCandidates = []struct {
-	name     string
-	progID   string
-	exe      string
+	name      string
+	progID    string
+	exe       string
 	wellKnown []string
 }{
 	{name: "edge", progID: "MSEdgeHTM", exe: "msedge.exe", wellKnown: []string{

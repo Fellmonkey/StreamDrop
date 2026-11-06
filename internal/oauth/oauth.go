@@ -27,6 +27,10 @@ const CallbackPort = 35357
 // CallbackPath is the callback route.
 const CallbackPath = "/api/v1/oauth/callback"
 
+// YandexCodePageURL is where Yandex shows the authorization code when an app
+// has no registered redirect URI (loopback redirects are not supported).
+const YandexCodePageURL = "https://oauth.yandex.ru/verification_code"
+
 // sessionTTL bounds how long a started authorization stays valid.
 const sessionTTL = 10 * time.Minute
 
@@ -40,8 +44,11 @@ type TokenSet struct {
 }
 
 // OnTokens is called after a successful exchange so the application can persist
-// encrypted tokens and materialise the rclone remote.
-type OnTokens func(ctx context.Context, providerID string, tok TokenSet) error
+// encrypted tokens and materialise the rclone remote. clientID/clientSecret are
+// the OAuth app credentials used for the exchange — the same credentials must
+// be handed to rclone or it would fall back to its own client and the token
+// would be rejected.
+type OnTokens func(ctx context.Context, providerID, clientID, clientSecret string, tok TokenSet) error
 
 // SessionState is the lifecycle state of an authorization session.
 type SessionState string
@@ -68,6 +75,7 @@ type Session struct {
 	ErrorCode string
 	RemoteID  string
 	Token     TokenSet
+	NeedsCode bool
 }
 
 // SessionView is the API projection of a session.
@@ -78,6 +86,7 @@ type SessionView struct {
 	RemoteID   string       `json:"remote_id,omitempty"`
 	ErrorCode  string       `json:"error_code,omitempty"`
 	ExpiresAt  time.Time    `json:"expires_at"`
+	NeedsCode  bool         `json:"needs_code,omitempty"`
 }
 
 // Manager owns the sessions and the callback server.
@@ -93,6 +102,10 @@ type Manager struct {
 	server       *http.Server
 	serverErr    error
 	now          func() time.Time
+	// endpoints holds per-provider overrides [authURL, tokenURL]; empty
+	// values mean "use the registry default" (e.g. OneDrive consumers vs
+	// common endpoint).
+	endpoints map[string][2]string
 }
 
 // NewManager builds an OAuth manager.
@@ -113,6 +126,7 @@ func NewManager(reg *Registry, callbackPort int, onTokens OnTokens) *Manager {
 		callbackPort: callbackPort,
 		onTokens:     onTokens,
 		now:          time.Now,
+		endpoints:    map[string][2]string{},
 	}
 }
 
@@ -125,6 +139,28 @@ func (m *Manager) RedirectURI() string { return m.redirectURI }
 // Registry exposes the provider registry (used by tests and handlers).
 func (m *Manager) Registry() *Registry { return m.registry }
 
+// SetEndpointOverride overrides a provider's auth/token endpoints (for
+// example OneDrive consumers vs common). Empty values reset to the registry
+// default.
+func (m *Manager) SetEndpointOverride(providerID, authURL, tokenURL string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if authURL == "" && tokenURL == "" {
+		delete(m.endpoints, providerID)
+		return
+	}
+	m.endpoints[providerID] = [2]string{authURL, tokenURL}
+}
+
+func (m *Manager) endpointFor(p Provider) (string, string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if e, ok := m.endpoints[p.ID]; ok {
+		return e[0], e[1]
+	}
+	return p.AuthURL, p.TokenURL
+}
+
 // Start begins an authorization session and returns its id plus the URL the
 // browser must open.
 func (m *Manager) Start(ctx context.Context, providerID, clientID, clientSecret string) (SessionView, string, error) {
@@ -132,6 +168,8 @@ func (m *Manager) Start(ctx context.Context, providerID, clientID, clientSecret 
 	if !ok {
 		return SessionView{}, "", apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "provider"})
 	}
+	epAuthURL, epTokenURL := m.endpointFor(provider)
+	provider.AuthURL, provider.TokenURL = epAuthURL, epTokenURL
 	if clientID != "" || clientSecret != "" {
 		m.registry.SetCredentials(providerID, clientID, clientSecret)
 	}
@@ -142,7 +180,9 @@ func (m *Manager) Start(ctx context.Context, providerID, clientID, clientSecret 
 		clientSecret = provider.ClientSecret
 	}
 	if provider.NeedsClientID && clientID == "" {
-		return SessionView{}, "", apierr.New(apierr.CodeAuthOAuthRequired, map[string]any{"provider": providerID, "reason": "client_id"})
+		return SessionView{}, "", apierr.New(apierr.CodeAuthOAuthRequired, map[string]any{
+			"provider": providerID, "reason": "client_id", "register_url": provider.RegisterURL,
+		})
 	}
 
 	if err := m.ensureCallbackServer(); err != nil {
@@ -173,6 +213,12 @@ func (m *Manager) Start(ctx context.Context, providerID, clientID, clientSecret 
 		ExpiresAt:    m.now().Add(sessionTTL),
 		Provider:     provider,
 		Status:       SessionPending,
+		NeedsCode:    provider.ManualCode,
+	}
+	if provider.ManualCode {
+		// Yandex has no loopback redirects: the provider displays the code
+		// on its verification page and the user pastes it back.
+		s.RedirectURI = YandexCodePageURL
 	}
 
 	m.mu.Lock()
@@ -248,8 +294,6 @@ func (m *Manager) Complete(ctx context.Context, state, code, providerError strin
 		return s.view(), apierr.New(apierr.CodeAuthRejected, map[string]any{"reason": "state_used"})
 	}
 	if m.now().After(s.ExpiresAt) {
-		s.Status = SessionFailed
-		s.ErrorCode = string(apierr.CodeAuthTokenExpired)
 		m.mu.Unlock()
 		return s.view(), apierr.New(apierr.CodeAuthTokenExpired, nil)
 	}
@@ -258,6 +302,35 @@ func (m *Manager) Complete(ctx context.Context, state, code, providerError strin
 	delete(m.byState, state)
 	m.mu.Unlock()
 
+	return m.finish(ctx, s, code, providerError)
+}
+
+// CompleteWithCode completes a session whose provider has no loopback redirect
+// (Yandex): the user copies the code from the provider's verification page and
+// the app exchanges it.
+func (m *Manager) CompleteWithCode(ctx context.Context, sessionID, code string) (SessionView, error) {
+	m.mu.Lock()
+	s, ok := m.sessions[sessionID]
+	if !ok {
+		m.mu.Unlock()
+		return SessionView{}, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "session"})
+	}
+	if s.Status != SessionPending {
+		m.mu.Unlock()
+		return s.view(), apierr.New(apierr.CodeAuthRejected, map[string]any{"reason": "state_used"})
+	}
+	if m.now().After(s.ExpiresAt) {
+		m.mu.Unlock()
+		return s.view(), apierr.New(apierr.CodeAuthTokenExpired, nil)
+	}
+	s.State = ""
+	delete(m.byState, s.State)
+	m.mu.Unlock()
+
+	return m.finish(ctx, s, code, "")
+}
+
+func (m *Manager) finish(ctx context.Context, s *Session, code, providerError string) (SessionView, error) {
 	if providerError != "" {
 		m.fail(s, string(apierr.CodeAuthRejected))
 		return s.view(), apierr.New(apierr.CodeAuthRejected, map[string]any{"reason": providerError})
@@ -274,7 +347,7 @@ func (m *Manager) Complete(ctx context.Context, state, code, providerError strin
 	}
 
 	if m.onTokens != nil {
-		if err := m.onTokens(ctx, s.ProviderID, tokens); err != nil {
+		if err := m.onTokens(ctx, s.ProviderID, s.ClientID, s.ClientSecret, tokens); err != nil {
 			m.fail(s, string(apierr.CodeInternalError))
 			return s.view(), err
 		}
@@ -309,11 +382,16 @@ func (m *Manager) exchange(ctx context.Context, s *Session, code string) (TokenS
 	return m.tokenRequest(ctx, s.Provider.TokenURL, form)
 }
 
-// Refresh exchanges a refresh token for a new access token.
-func (m *Manager) Refresh(ctx context.Context, providerID, clientSecret, refreshToken string) (TokenSet, error) {
+// Refresh exchanges a refresh token for a new access token. The client ID and
+// secret are the ones the original token was issued for — using rclone's own
+// client here would fail to refresh.
+func (m *Manager) Refresh(ctx context.Context, providerID, clientID, clientSecret, refreshToken string) (TokenSet, error) {
 	provider, ok := m.registry.Get(providerID)
 	if !ok {
 		return TokenSet{}, apierr.New(apierr.CodeValidationFailed, map[string]any{"field": "provider"})
+	}
+	if clientID == "" {
+		clientID = provider.ClientID
 	}
 	if clientSecret == "" {
 		clientSecret = provider.ClientSecret
@@ -321,7 +399,7 @@ func (m *Manager) Refresh(ctx context.Context, providerID, clientSecret, refresh
 	form := url.Values{}
 	form.Set("grant_type", "refresh_token")
 	form.Set("refresh_token", refreshToken)
-	form.Set("client_id", provider.ClientID)
+	form.Set("client_id", clientID)
 	if clientSecret != "" {
 		form.Set("client_secret", clientSecret)
 	}
@@ -344,6 +422,14 @@ func (m *Manager) tokenRequest(ctx context.Context, endpoint string, form url.Va
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 
 	if resp.StatusCode >= 400 {
+		// Microsoft returns "unauthorized_client" when the app registration is
+		// not enabled for personal accounts ("consumers") — a configuration
+		// problem, not a session problem.
+		if strings.Contains(string(body), "unauthorized_client") {
+			return TokenSet{}, apierr.New(apierr.CodeAuthClientNotEnabled, map[string]any{
+				"provider": "onedrive",
+			}).WithDetail(string(body))
+		}
 		return TokenSet{}, apierr.New(apierr.CodeAuthRejected, map[string]any{
 			"status_code": resp.StatusCode,
 		}).WithDetail(string(body))
@@ -385,6 +471,7 @@ func (s *Session) view() SessionView {
 	return SessionView{
 		ID: s.ID, ProviderID: s.ProviderID, Status: s.Status,
 		RemoteID: s.RemoteID, ErrorCode: s.ErrorCode, ExpiresAt: s.ExpiresAt,
+		NeedsCode: s.NeedsCode,
 	}
 }
 

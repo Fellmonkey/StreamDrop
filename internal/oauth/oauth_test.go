@@ -76,7 +76,7 @@ func TestCompleteExchangesCode(t *testing.T) {
 
 	var stored TokenSet
 	m, _ := testManager(t, srv.URL)
-	m.onTokens = func(ctx context.Context, providerID string, tok TokenSet) error {
+	m.onTokens = func(ctx context.Context, providerID, clientID, clientSecret string, tok TokenSet) error {
 		stored = tok
 		return nil
 	}
@@ -186,7 +186,7 @@ func TestRefresh(t *testing.T) {
 	}))
 	defer srv.Close()
 	m, _ := testManager(t, srv.URL)
-	tok, err := m.Refresh(context.Background(), "yandex", "", "refresh-token")
+	tok, err := m.Refresh(context.Background(), "yandex", "", "", "refresh-token")
 	if err != nil {
 		t.Fatalf("refresh: %v", err)
 	}

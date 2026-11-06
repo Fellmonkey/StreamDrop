@@ -160,10 +160,6 @@ export function SettingsDialog({
               <Bell className="mr-1 inline h-3 w-3" />
               {t('settings.notifications')}
             </TabsTrigger>
-            <TabsTrigger value="update">
-              <DownloadCloud className="mr-1 inline h-3 w-3" />
-              {t('settings.update')}
-            </TabsTrigger>
             <TabsTrigger value="system">
               <Info className="mr-1 inline h-3 w-3" />
               {t('settings.system')}
@@ -297,44 +293,6 @@ export function SettingsDialog({
             </div>
           </TabsContent>
 
-          <TabsContent value="update" className="space-y-3">
-            <Row label={t('settings.updateCurrent')}>
-              <div className="flex items-center gap-2">
-                <Badge tone="accent">{status?.version ?? '—'}</Badge>
-                <Button size="sm" variant="secondary" disabled={checking} onClick={() => void check()}>
-                  {checking ? t('settings.checking') : t('settings.check')}
-                </Button>
-              </div>
-            </Row>
-            {updateInfo ? (
-              updateInfo.available ? (
-                <div className="space-y-2 rounded-xl border border-sky-400/20 bg-sky-400/[0.05] p-3">
-                  <p className="text-xs text-sky-200">{t('settings.available', { version: updateInfo.version })}</p>
-                  <div className="space-y-0.5 text-[10px] text-slate-400">
-                    <p>{formatBytes(updateInfo.size_bytes ?? 0, i18n.language)}</p>
-                    <p className="break-all font-mono">{updateInfo.sha256}</p>
-                    <p>{updateInfo.signature_checked ? t('settings.signature') : t('settings.noSignature')}</p>
-                  </div>
-                  {updateInfo.notes ? (
-                    <div>
-                      <p className="text-[10px] uppercase tracking-wide text-slate-500">{t('settings.updateNotes')}</p>
-                      <p className="mt-0.5 whitespace-pre-wrap text-[11px] text-slate-300">{updateInfo.notes}</p>
-                    </div>
-                  ) : null}
-                  <Button size="sm" variant="primary" disabled={apply.isPending} onClick={() => apply.mutate()}>
-                    {t('settings.apply')}
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-500">
-                  {updateInfo.error_code
-                    ? t(`errors.${updateInfo.error_code}`, { defaultValue: updateInfo.error_code })
-                    : t('settings.notAvailable')}
-                </p>
-              )
-            ) : null}
-          </TabsContent>
-
           <TabsContent value="system" className={TAB_CONTENT}>
             <Row label={t('settings.version')}>
               <Badge tone="muted">{status?.version ?? '—'}</Badge>
@@ -353,6 +311,48 @@ export function SettingsDialog({
                 {Math.floor((status?.uptime_seconds ?? 0) / 60)}m
               </span>
             </Row>
+
+            <div className="space-y-3 border-t border-white/[0.07] pt-3">
+              <p className="flex items-center gap-1.5 text-sm font-medium text-slate-200">
+                <DownloadCloud className="h-3.5 w-3.5 text-slate-400" />
+                {t('settings.update')}
+              </p>
+              <Row label={t('settings.updateCurrent')}>
+                <div className="flex items-center gap-2">
+                  <Badge tone="accent">{status?.version ?? '—'}</Badge>
+                  <Button size="sm" variant="secondary" disabled={checking} onClick={() => void check()}>
+                    {checking ? t('settings.checking') : t('settings.check')}
+                  </Button>
+                </div>
+              </Row>
+              {updateInfo ? (
+                updateInfo.available ? (
+                  <div className="space-y-2 rounded-xl border border-sky-400/20 bg-sky-400/[0.05] p-3">
+                    <p className="text-xs text-sky-200">{t('settings.available', { version: updateInfo.version })}</p>
+                    <div className="space-y-0.5 text-[10px] text-slate-400">
+                      <p>{formatBytes(updateInfo.size_bytes ?? 0, i18n.language)}</p>
+                      <p className="break-all font-mono">{updateInfo.sha256}</p>
+                      <p>{updateInfo.signature_checked ? t('settings.signature') : t('settings.noSignature')}</p>
+                    </div>
+                    {updateInfo.notes ? (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-slate-500">{t('settings.updateNotes')}</p>
+                        <p className="mt-0.5 whitespace-pre-wrap text-[11px] text-slate-300">{updateInfo.notes}</p>
+                      </div>
+                    ) : null}
+                    <Button size="sm" variant="primary" disabled={apply.isPending} onClick={() => apply.mutate()}>
+                      {t('settings.apply')}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500">
+                    {updateInfo.error_code
+                      ? t(`errors.${updateInfo.error_code}`, { defaultValue: updateInfo.error_code })
+                      : t('settings.notAvailable')}
+                  </p>
+                )
+              ) : null}
+            </div>
           </TabsContent>
 
           <TabsContent value="interface" className={TAB_CONTENT}>
@@ -395,6 +395,9 @@ export function SettingsDialog({
                   const next = e.target.value as BrowserChoice
                   applyBrowser(next)
                   setBrowser(next)
+                  // Persist on the backend too, so the auto-opened OAuth page
+                  // uses the same browser.
+                  save.mutate({ oauth_browser: next })
                 }}
               >
                 {browserList.map((b) => (

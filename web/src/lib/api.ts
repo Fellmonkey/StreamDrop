@@ -179,7 +179,7 @@ export const api = {
   },
 
   oauthProviders() {
-    return request<{ providers: OAuthProvider[] }>('/oauth/providers').then((r) => r.providers ?? [])
+    return request<{ providers: OAuthProvider[]; redirect_uri?: string }>('/oauth/providers')
   },
 
   oauthAuthorize(provider: string, clientId = '', clientSecret = '') {
@@ -191,6 +191,13 @@ export const api = {
 
   oauthSession(id: string) {
     return request<OAuthSession>(`/oauth/session/${id}`)
+  },
+
+  oauthSubmitCode(id: string, code: string) {
+    return request<OAuthSession>(`/oauth/session/${id}/code`, {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    })
   },
 
   oauthRevoke(provider: string) {

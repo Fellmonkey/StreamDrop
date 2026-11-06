@@ -3,13 +3,18 @@ import { useTranslation } from 'react-i18next'
 import { AppWindow, Cloud, ExternalLink, HardDrive, Moon, Package, Settings as SettingsIcon, ShieldCheck, Sun } from 'lucide-react'
 import type { Stats, Status } from '@/types/api'
 import { api } from '@/lib/api'
-import { formatBytes } from '@/lib/formatters'
+import { formatBytes, formatDuration, formatSpeed } from '@/lib/formatters'
 import { Badge, Button, Tooltip } from '@/components/ui/primitives'
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
 import { AnimatedNumber } from '@/components/common/AnimatedNumber'
 import { PulseDot } from '@/components/common/PulseDot'
 import { applyTheme, readTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
+
+function formatRewriteCapacity(tb: number | null | undefined, locale: string): string {
+  if (tb == null || !Number.isFinite(tb)) return '—'
+  return formatBytes(tb * 1024 * 1024 * 1024 * 1024, locale, 0)
+}
 
 interface HeaderProps {
   status?: Status
@@ -55,9 +60,15 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
 
         <Tooltip
           content={
-            <div className="w-[min(18rem,calc(100vw-2rem))] space-y-2">
+            <div className="w-[min(19rem,calc(100vw-2rem))] space-y-2">
               <p className="text-[11px] font-semibold text-slate-100">{t('header.resourceSaved')}</p>
               <p className="text-[11px] leading-relaxed text-slate-400">{t('header.resourceNote')}</p>
+              <div className="flex items-center justify-between rounded-lg border border-emerald-400/20 bg-emerald-400/[0.05] px-2.5 py-1.5">
+                <span className="text-[11px] text-slate-300">{t('header.timeSaved')}</span>
+                <span className="numeric text-[11px] font-medium text-emerald-200">
+                  {formatDuration(stats?.time_saved_seconds ?? 0)}
+                </span>
+              </div>
               <div className="space-y-1.5 pt-1">
                 {(stats?.wear.classes ?? []).map((cls) => (
                   <div key={cls.class} className="space-y-1">
@@ -70,6 +81,16 @@ export function Header({ status, stats, onOpenSettings, onOpenConnections, onOpe
                     </div>
                     <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                       <div className="h-full rounded-full bg-sky-400/70" style={{ width: `${Math.min(100, cls.percent)}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>
+                        {t('header.diskSpeeds')}: {formatSpeed(cls.read_speed_bps, i18n.language)} / {formatSpeed(cls.write_speed_bps, i18n.language)}
+                      </span>
+                      <span className="numeric">{formatDuration(cls.time_saved_seconds)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500">
+                      <span>{t('header.rewriteCapacity')}: {formatRewriteCapacity(cls.rewrite_capacity_tb, i18n.language)}</span>
+                      <span className="text-slate-600">{t('header.diskTime')}</span>
                     </div>
                   </div>
                 ))}

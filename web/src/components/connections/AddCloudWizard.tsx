@@ -79,6 +79,10 @@ export function AddCloudWizard({
   const [clientSecret, setClientSecret] = useState('')
   const [verifyState, setVerifyState] = useState<'idle' | 'ok' | 'failed'>('idle')
   const [yMethod, setYMethod] = useState<'oauth' | 'token'>('oauth')
+  const [registering, setRegistering] = useState(false)
+  const [code, setCode] = useState('')
+  const [sendingCode, setSendingCode] = useState(false)
+  const [acctType, setAcctType] = useState('common')
 
   const oauth = useOAuth(() => setVerifyState('ok'))
 
@@ -89,13 +93,36 @@ export function AddCloudWizard({
     staleTime: 60_000,
   })
 
+  useEffect(() => {
+    if (open && providerId === 'onedrive') {
+      void api.settings().then((s) => setAcctType(s.onedrive_account_type ?? 'common')).catch(() => undefined)
+    }
+  }, [open, providerId])
+
   const spec = PROVIDERS.find((p) => p.id === providerId)
   const oauthProvider: OAuthProvider | undefined = useMemo(
-    () => (providers.data ?? []).find((p) => p.id === providerId),
+    () => (providers.data?.providers ?? []).find((p) => p.id === providerId),
     [providers.data, providerId],
   )
+  const oauthRedirect = providers.data?.redirect_uri ?? ''
   const access: AccessKind =
     spec?.access === 'oauth_or_token' ? yMethod : spec?.access ?? 'password'
+
+  /** True when the provider needs user-supplied OAuth app keys and they are missing. */
+  const needClientKeys = Boolean(oauthProvider?.needs_client_id) && (!clientId.trim() || !clientSecret.trim())
+
+  /** openRegister opens the provider's OAuth app registration page in the browser. */
+  const openRegister = async () => {
+    if (!oauthProvider?.register_url) return
+    setRegistering(true)
+    try {
+      await api.openURL(oauthProvider.register_url, 'default')
+    } catch {
+      window.open(oauthProvider.register_url, '_blank')
+    } finally {
+      setRegistering(false)
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -116,9 +143,10 @@ export function AddCloudWizard({
     setClientSecret('')
     setVerifyState('idle')
     setYMethod('oauth')
+    setCode('')
+    setSendingCode(false)
     oauth.reset()
   }, [open])
-
   const options = useMemo(() => {
     const out: Record<string, string> = {}
     if (providerId === 'mailru') {
@@ -311,57 +339,187 @@ export function AddCloudWizard({
 
               {access === 'oauth' ? (
                 <div className="space-y-3">
-                  <p className="text-[11px] leading-relaxed text-slate-400">{t('connections.clientHint')}</p>
+                  <div className="rounded-lg border border-border bg-muted/50 px-2.5 py-2">
+                    <p className="text-[11px] font-medium text-slate-300">{t('connections.scopesRequested')}</p>
+                    <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">
+                      {t(`connections.scope_${providerId}`, { defaultValue: t('connections.scope_generic') })}
+                    </p>
+                  </div>
                   {oauthProvider?.needs_client_id ? (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label>{t('connections.clientId')}</Label>
-                        <Input value={clientId} onChange={(e) => setClientId(e.target.value)} className="h-8 text-xs" />
+                    <>
+                      {providerId === 'onedrive' ? (
+                        <div className="space-y-1">
+                          <Label>{t('connections.onedriveAccountType')}</Label>
+                          <Select
+                            value={acctType}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setAcctType(v)
+                              void api.updateSettings({ onedrive_account_type: v })
+                            }}
+                          >
+                            <option value="common">{t('connections.acctCommon')}</option>
+                            <option value="consumers">{t('connections.acctConsumers')}</option>
+                          </Select>
+                        </div>
+                      ) : null}
+                      <div className="rounded-lg border border-sky-400/20 bg-sky-400/[0.05] px-2.5 py-2">
+                        <p className="text-[11px] leading-relaxed text-slate-300">{t('connections.clientHint')}</p>
+                        {providerId === 'drive' ? (
+                          <ol className="mt-1 list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-slate-400">
+                            <li>{t('connections.regDrive1')}</li>
+                            <li>{t('connections.regDrive2')}</li>
+                            <li>{t('connections.regDrive3', { redirect: oauthRedirect })}</li>
+                            <li>{t('connections.regDrive4')}</li>
+                            <li>{t('connections.regDrive5')}</li>
+                          </ol>
+                        ) : providerId === 'onedrive' ? (
+                          <ol className="mt-1 list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-slate-400">
+                            <li>{t('connections.regOnedrive1')}</li>
+                            <li>{t('connections.regOnedrive2', { redirect: oauthRedirect })}</li>
+                            <li>{t('connections.regOnedrive3')}</li>
+                            <li>{t('connections.regOnedrive4')}</li>
+                            <li>{t('connections.regOnedrive5')}</li>
+                          </ol>
+                        ) : (
+                          <ol className="mt-1 list-decimal space-y-1 pl-4 text-[10px] leading-relaxed text-slate-400">
+                            <li>{t('connections.regYandex1')}</li>
+                            <li>{t('connections.regYandex2')}</li>
+                            <li>{t('connections.regYandex3')}</li>
+                          </ol>
+                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={registering}
+                            onClick={() => void openRegister()}
+                          >
+                            {registering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                            {t('connections.registerOpen')}
+                          </Button>
+                          {providerId === 'drive' ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => void api.openURL('https://console.cloud.google.com/apis/library/drive.googleapis.com', 'default')}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              {t('connections.enableDriveApi')}
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <Label>{t('connections.clientSecret')}</Label>
-                        <Input
-                          type="password"
-                          value={clientSecret}
-                          onChange={(e) => setClientSecret(e.target.value)}
-                          className="h-8 text-xs"
-                        />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label>{t('connections.clientId')}</Label>
+                          <Input value={clientId} onChange={(e) => setClientId(e.target.value)} className="h-8 text-xs" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>{t('connections.clientSecret')}</Label>
+                          <Input
+                            type="password"
+                            value={clientSecret}
+                            onChange={(e) => setClientSecret(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    </>
+                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={(oauth.status === 'pending' && oauth.opening) || (needClientKeys && registering)}
+                      onClick={() => {
+                        if (needClientKeys) {
+                          void openRegister()
+                        } else if (oauth.status === 'pending') {
+                          void oauth.openBrowser(oauth.authUrl)
+                        } else {
+                          void oauth.start(providerId, clientId, clientSecret)
+                        }
+                      }}
+                    >
+                      {oauth.opening ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {t('connections.oauthOpening')}
+                        </>
+                      ) : oauth.status === 'pending' ? (
+                        <>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {t('connections.oauthOpenAgain')}
+                        </>
+                      ) : needClientKeys ? (
+                        <>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {t('connections.oauthCreateApp')}
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          {t('connections.oauthStart')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {needClientKeys ? (
+                    <p className="text-[10px] leading-relaxed text-slate-500">{t('connections.oauthKeysNote')}</p>
                   ) : null}
                   {oauth.status === 'pending' && oauth.authUrl ? (
                     <p className="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2 text-[11px] leading-relaxed text-warn">
-                      {t('connections.oauthBlocked')}{' '}
+                      {oauth.openFailed ? t('connections.oauthOpenFailed') : t('connections.oauthBlocked')}{' '}
                       <a href={oauth.authUrl} target="_blank" rel="noreferrer" className="underline">
                         {t('connections.oauthOpenLink')}
                       </a>
                     </p>
                   ) : null}
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    disabled={oauth.status === 'pending'}
-                    onClick={() => void oauth.start(providerId, clientId, clientSecret)}
-                  >
-                    {oauth.status === 'pending' ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        {t('connections.oauthWaiting')}
-                      </>
+                  {oauth.status === 'pending' && oauth.authUrl ? (
+                    oauthProvider?.needs_code ? (
+                      <div className="space-y-2 rounded-lg border border-sky-400/20 bg-sky-400/[0.05] p-2.5">
+                        <p className="text-[11px] leading-relaxed text-slate-300">{t('connections.codePageHint')}</p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            placeholder={t('connections.codePlaceholder')}
+                            className="h-8 font-mono text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            className="shrink-0"
+                            disabled={!code.trim() || sendingCode}
+                            onClick={() => {
+                              setSendingCode(true)
+                              void oauth.submitCode(code).finally(() => setSendingCode(false))
+                            }}
+                          >
+                            {sendingCode ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            {t('connections.codeSubmit')}
+                          </Button>
+                        </div>
+                      </div>
                     ) : (
-                      <>
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        {t('connections.oauthStart')}
-                      </>
-                    )}
-                  </Button>
+                      <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {t('connections.oauthWaiting')}
+                      </p>
+                    )
+                  ) : null}
                   {verifyState === 'ok' ? (
                     <p className="flex items-center gap-1.5 text-[11px] text-emerald-300">
                       <ShieldCheck className="h-3.5 w-3.5" />
                       {t('connections.oauthDone')}
                     </p>
                   ) : null}
-                  {oauth.status === 'failed' ? (
+                  {oauth.status === 'failed' && oauth.error?.code === 'auth_oauth_required' ? (
+                    <p className="rounded-lg border border-warn/30 bg-warn/10 px-2.5 py-2 text-[11px] leading-relaxed text-warn">
+                      {t('connections.oauthNeedKeys')}
+                    </p>
+                  ) : oauth.status === 'failed' ? (
                     <ErrorText code={oauth.error?.code ?? 'auth_rejected'} />
                   ) : null}
                 </div>
