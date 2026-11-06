@@ -184,6 +184,10 @@ func Run(ctx context.Context, cfg config.Config) (runErr error) {
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
+	if err := writeDaemonFile(cfg.DataDir, port, token); err != nil {
+		return fmt.Errorf("write daemon file: %w", err)
+	}
+	defer removeDaemonFile(cfg.DataDir)
 	url := fmt.Sprintf("http://%s:%d", displayHost(cfg.Host), port)
 
 	hub.SetSnapshotBuilder(func() any { return snapshot(st, q, depMgr, transfers) })

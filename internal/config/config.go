@@ -189,6 +189,7 @@ func (c Config) EnsureDirs() error {
 		c.LogsDir(),
 		c.DepsDir(),
 		c.CrashDir(),
+		c.RunDir(),
 		c.UpdateStagingDir(),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -201,6 +202,7 @@ func (c Config) EnsureDirs() error {
 func (c Config) LogsDir() string          { return filepath.Join(c.DataDir, "logs") }
 func (c Config) DepsDir() string          { return filepath.Join(c.DataDir, "deps") }
 func (c Config) CrashDir() string         { return filepath.Join(c.DataDir, "crash") }
+func (c Config) RunDir() string           { return filepath.Join(c.DataDir, "run") }
 func (c Config) UpdateStagingDir() string { return filepath.Join(c.DataDir, "update", "staging") }
 func (c Config) DatabasePath() string     { return filepath.Join(c.DataDir, "streamdrop.db") }
 
