@@ -1,8 +1,7 @@
-package main
+package mcpserver
 
 import (
 	"testing"
-	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -82,5 +81,3 @@ func TestToolSchemasRequireIDs(t *testing.T) {
 		}
 	}
 }
-
-var _ = time.Now

@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "servers": {
+      "streamdrop": {
+        "type": "stdio",
+        "command": [
+          "C:/Users/<you>/Downloads/StreamDrop/streamdrop.exe",
+          "mcp"
+        ]
+      }
+    }
+  }
+}

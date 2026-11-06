@@ -4,10 +4,10 @@
 SHELL := /bin/bash
 WEB := web
 BIN := bin/streamdrop
+BIN_MCP := bin/streamdrop-mcp
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
-.PHONY: all web deps build build-windows test test-web test-e2e vet lint depcheck run clean package
-
+.PHONY: all web deps build build-mcp build-windows test test-web test-e2e vet lint depcheck run clean package
 all: web build
 
 web:
@@ -20,7 +20,13 @@ build: web
 	mkdir -p bin
 	CGO_ENABLED=0 go build -trimpath -o $(BIN) ./cmd/streamdrop
 
-# Reference platform: Windows, no console window.
+build-mcp:
+	mkdir -p bin
+	CGO_ENABLED=0 go build -trimpath -o $(BIN_MCP) ./cmd/streamdrop-mcp
+
+# Reference platform: Windows. streamdrop.exe is a GUI app (no console); the
+# MCP mode is a subcommand (streamdrop mcp) and works over inherited stdio
+# pipes. build-mcp produces the standalone console variant for development.
 build-windows: web
 	mkdir -p bin
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath \
@@ -44,12 +50,12 @@ depcheck:
 run: build
 	STREAMDROP_CONSOLE_LOG=1 ./$(BIN) --no-tray --no-browser
 
-# Portable archive layout: binary, docs, and downloaded components.
+# Portable archive layout: binary, docs, examples, downloaded components.
 package: build-windows
 	mkdir -p dist/StreamDrop
 	cp bin/streamdrop.exe dist/StreamDrop/
-	cp README.md dist/StreamDrop/
-	cp README.ru.md dist/StreamDrop/
+	cp README.md README.ru.md dist/StreamDrop/
+	cp -r examples dist/StreamDrop/examples
 	cp -r deps dist/StreamDrop/deps 2>/dev/null || true
 	cd dist && rm -f StreamDrop-v1-windows-amd64.zip && \
 		(command -v zip >/dev/null && zip -qr StreamDrop-v1-windows-amd64.zip StreamDrop || \

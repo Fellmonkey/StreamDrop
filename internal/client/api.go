@@ -2,8 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -267,13 +265,7 @@ type remoteResponse struct {
 
 func (r remoteResponse) apiErr() error {
 	if r.Error != nil && r.Error.Error.Code != "" {
-		return &APIError{
-			StatusCode: http.StatusOK,
-			Code:       r.Error.Error.Code,
-			Kind:       r.Error.Error.Kind,
-			Params:     r.Error.Error.Params,
-			Details:    r.Error.Error.Details,
-		}
+		return apiErrorFromPayload(http.StatusOK, r.Error.Error)
 	}
 	return nil
 }
@@ -579,6 +571,3 @@ func (c *Client) ApplyUpdate(ctx context.Context) error {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-var _ = fmt.Sprintf
-var _ = json.Marshal

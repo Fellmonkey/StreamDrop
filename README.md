@@ -73,7 +73,22 @@ The frontend must be built before `go build` (`web/embed.go`). Icon: `cmd/stream
 | `--no-browser` | off | do not open the browser |
 | `--update-repo` | `Fellmonkey/StreamDrop` | GitHub owner/repo |
 
-Data: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`.
+Data: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`. The daemon also writes `run\daemon.json` (port, per-run token, pid) — the discovery record used by external clients; it is removed on shutdown.
+
+## AI integration (MCP)
+
+`streamdrop.exe` itself can serve as an MCP server for agents (Claude Desktop, OpenCode, Cursor) over stdio — no extra downloads, no second binary. It exposes 15 typed tools (status, clouds, transfers, queue, components, updates). The token and port are read from `run\daemon.json` on every call, so a daemon restart needs no reconfiguration.
+
+Configure your MCP client to run:
+
+```
+C:\Users\<you>\Downloads\StreamDrop\streamdrop.exe mcp
+```
+
+Example client configs (replace `<you>` and the path): `examples/mcp-claude.json`, `examples/mcp-opencode.json`. If your data directory is not the default, append `--data-dir <path>` to the arguments.
+
+- Tools return machine-readable error codes (`source_unreachable`, `daemon_unreachable`, `validation_failed`, ...); the daemon must be running for any tool to succeed.
+- MCP is optional: if you do not use AI agents, ignore the `mcp` subcommand entirely. MCP servers never start on their own — they only run when an MCP client spawns them.
 
 ## Security
 

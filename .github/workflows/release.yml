@@ -102,6 +102,7 @@ jobs:
           mkdir -p "dist/${name}"
           cp "streamdrop"* "dist/${name}/"
           cp README.md "dist/${name}/"
+          cp -r examples "dist/${name}/examples"
           if [ "${{ matrix.goos }}" = "windows" ] && [ -d deps ]; then
             cp -r deps "dist/${name}/deps"
           fi

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "streamdrop": {
+      "command": "C:/Users/<you>/Downloads/StreamDrop/streamdrop.exe",
+      "args": ["mcp"]
+    }
+  }
+}

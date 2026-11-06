@@ -71,7 +71,22 @@ go build -trimpath -ldflags "-s -w -H=windowsgui" -o bin/streamdrop.exe ./cmd/st
 | `--no-browser` | выкл. | не открывать браузер |
 | `--update-repo` | `Fellmonkey/StreamDrop` | GitHub owner/repo |
 
-Данные: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`.
+Данные: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`. Демон также пишет `run\daemon.json` (порт, одноразовый токен, pid) — файл обнаружения для внешних клиентов; удаляется при завершении.
+
+## ИИ-интеграция (MCP)
+
+Сам `streamdrop.exe` может выступать MCP-сервером для агентов (Claude Desktop, OpenCode, Cursor) через stdio — без дополнительных скачиваний и второго бинарника. Он открывает 15 типизированных инструментов (статус, облака, задачи, очередь, компоненты, обновления). Порт и токен читаются из `run\daemon.json` при каждом вызове — рестарт демона не требует перенастройки.
+
+Настройте MCP-клиент на запуск:
+
+```
+C:\Users\<вы>\Downloads\StreamDrop\streamdrop.exe mcp
+```
+
+Примеры конфигов клиентов (замените `<вы>` и путь): `examples/mcp-claude.json`, `examples/mcp-opencode.json`. Если каталог данных нестандартный — добавьте `--data-dir <путь>` к аргументам.
+
+- Инструменты возвращают машинные коды ошибок (`source_unreachable`, `daemon_unreachable`, `validation_failed`, ...); для работы любого инструмента демон должен быть запущен.
+- MCP опционален: если вы не пользуетесь ИИ-агентами, просто игнорируйте подкоманду `mcp`. MCP-серверы никогда не запускаются сами — только по команде клиента MCP.
 
 ## Безопасность
 

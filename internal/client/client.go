@@ -116,13 +116,7 @@ func (c *Client) do(ctx context.Context, method, path, query string, body, out a
 	if resp.StatusCode >= 400 {
 		var env apierr.Envelope
 		if json.Unmarshal(data, &env) == nil && env.Error.Code != "" {
-			return &APIError{
-				StatusCode: resp.StatusCode,
-				Code:       env.Error.Code,
-				Kind:       env.Error.Kind,
-				Params:     env.Error.Params,
-				Details:    env.Error.Details,
-			}
+			return apiErrorFromPayload(resp.StatusCode, env.Error)
 		}
 		return &APIError{StatusCode: resp.StatusCode, Code: apierr.CodeInternalError, Details: string(data)}
 	}
@@ -132,6 +126,17 @@ func (c *Client) do(ctx context.Context, method, path, query string, body, out a
 		}
 	}
 	return nil
+}
+
+// apiErrorFromPayload builds an APIError from a wire payload.
+func apiErrorFromPayload(status int, p apierr.Payload) *APIError {
+	return &APIError{
+		StatusCode: status,
+		Code:       p.Code,
+		Kind:       p.Kind,
+		Params:     p.Params,
+		Details:    p.Details,
+	}
 }
 
 func (c *Client) get(ctx context.Context, path, query string, out any) error {
