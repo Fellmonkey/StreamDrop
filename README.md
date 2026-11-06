@@ -71,7 +71,7 @@ The frontend must be built before `go build` (`web/embed.go`). Icon: `cmd/stream
 | `--data-dir` | `%LOCALAPPDATA%\StreamDrop` | DB, logs, components |
 | `--no-tray` | off | no tray icon |
 | `--no-browser` | off | do not open the browser |
-| `--update-repo` | `streamdrop/streamdrop` | GitHub owner/repo |
+| `--update-repo` | `Fellmonkey/StreamDrop` | GitHub owner/repo |
 
 Data: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`.
 

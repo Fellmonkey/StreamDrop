@@ -69,7 +69,7 @@ go build -trimpath -ldflags "-s -w -H=windowsgui" -o bin/streamdrop.exe ./cmd/st
 | `--data-dir` | `%LOCALAPPDATA%\StreamDrop` | БД, логи, компоненты |
 | `--no-tray` | выкл. | без иконки в трее |
 | `--no-browser` | выкл. | не открывать браузер |
-| `--update-repo` | `streamdrop/streamdrop` | GitHub owner/repo |
+| `--update-repo` | `Fellmonkey/StreamDrop` | GitHub owner/repo |
 
 Данные: `streamdrop.db`, `logs\`, `deps\`, `crash\`, `update\staging\`.
 

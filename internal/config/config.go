@@ -48,7 +48,7 @@ func Defaults() Config {
 		DataDir:           defaultDataDir(),
 		NoTray:            false,
 		OpenBrowser:       true,
-		UpdateRepo:        "streamdrop/streamdrop",
+		UpdateRepo:        "Fellmonkey/StreamDrop",
 		LogLevel:          "info",
 		OAuthCallbackPort: 35357,
 	}
