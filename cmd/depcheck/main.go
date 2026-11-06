@@ -59,7 +59,7 @@ func main() {
 			continue
 		}
 		dir := filepath.Join(*depsDir, c.ID, c.Version)
-		bin := deps.BinaryPath(dir, c)
+		bin := deps.BinaryPathFor(dir, c, *goos)
 		if _, err := os.Stat(bin); err != nil {
 			fmt.Printf("MISSING binary %s (%s)\n", c.ID, bin)
 			failed = true

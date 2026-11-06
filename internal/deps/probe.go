@@ -71,6 +71,12 @@ func BinaryPath(dir string, c Component) string {
 	return binaryPathFor(dir, c, runtime.GOOS)
 }
 
+// BinaryPathFor returns the executable path for an explicit target OS (used by
+// cmd/depcheck when verifying a cross-platform layout from CI).
+func BinaryPathFor(dir string, c Component, goos string) string {
+	return binaryPathFor(dir, c, goos)
+}
+
 // binaryPathFor is BinaryPath with an explicit target OS (needed when
 // extracting a Windows archive on a POSIX test host).
 func binaryPathFor(dir string, c Component, goos string) string {

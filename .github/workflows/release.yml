@@ -69,10 +69,10 @@ jobs:
         if: matrix.name == 'windows-amd64'
         run: |
           set -euo pipefail
-          mkdir -p deps/rclone/v1.68.2 deps/yt-dlp/2025.09.26 deps/curl/8.23.0
+          mkdir -p deps/rclone/v1.68.2 deps/yt-dlp/2026.10.26 deps/curl/8.23.0
           curl -fsSL https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-windows-amd64.zip -o /tmp/rclone-v1.68.2-windows-amd64.zip
           unzip -j -o /tmp/rclone-v1.68.2-windows-amd64.zip "*/rclone.exe" -d deps/rclone/v1.68.2
-          curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/download/2025.09.26/yt-dlp.exe -o deps/yt-dlp/2025.09.26/yt-dlp.exe
+          curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/download/2026.10.26/yt-dlp.exe -o deps/yt-dlp/2026.10.26/yt-dlp.exe
           curl -fsSL https://curl.se/windows/dl-8.23.0_8/curl-8.23.0_8-win64-mingw.zip -o /tmp/curl-8.23.0_8-win64-mingw.zip
           unzip -j -o /tmp/curl-8.23.0_8-win64-mingw.zip "*/bin/curl.exe" -d deps/curl/8.23.0
 

@@ -38,3 +38,8 @@ web/e2e-integration/fixtures/*.iso
 web/e2e-integration/fixtures/*.zip
 /web/test-results
 SECURITY_REVIEW.md
+
+# Release artifacts and prep files stay out of git
+/dist/
+/RELEASE_NOTES.md
+

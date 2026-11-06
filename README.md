@@ -2,6 +2,8 @@
 
 **Your helper for moving files between the internet and clouds** — without writing to disk and without extra servers.
 
+**Download:** [StreamDrop v1.0.0 — Windows x64](https://github.com/Fellmonkey/StreamDrop/releases/latest) (single portable exe, no installer)
+
 The stream goes `HTTP → RAM → rclone rcat`: large files travel from the web straight into cloud storage, bypassing the drive. The UI opens in a browser at `127.0.0.1`; closing the tab doesn't interrupt transfers — the service keeps running in the tray.
 
 > Русская версия: [`README.ru.md`](README.ru.md)
