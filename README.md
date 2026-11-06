@@ -87,6 +87,14 @@ C:\Users\<you>\Downloads\StreamDrop\streamdrop.exe mcp
 
 Example client configs (replace `<you>` and the path): `examples/mcp-claude.json`, `examples/mcp-opencode.json`. If your data directory is not the default, append `--data-dir <path>` to the arguments.
 
+### Agent skill (portable)
+
+`skills/streamdrop/SKILL.md` is a portable agent skill: it teaches an agent the domain rules (invariants, workflows, error codes) on top of the MCP tools. Wire it into your harness:
+
+- **OpenCode:** copy it to `.opencode/skills/streamdrop/SKILL.md`, or add `"skills": ["./skills"]` to `opencode.json` so OpenCode discovers the whole `skills/` catalog.
+- **Claude Code:** copy it to `.claude/skills/streamdrop/SKILL.md`.
+- **Any other agent:** attach `skills/streamdrop/SKILL.md` as an instruction document.
+
 - Tools return machine-readable error codes (`source_unreachable`, `daemon_unreachable`, `validation_failed`, ...); the daemon must be running for any tool to succeed.
 - MCP is optional: if you do not use AI agents, ignore the `mcp` subcommand entirely. MCP servers never start on their own — they only run when an MCP client spawns them.
 

@@ -85,6 +85,14 @@ C:\Users\<вы>\Downloads\StreamDrop\streamdrop.exe mcp
 
 Примеры конфигов клиентов (замените `<вы>` и путь): `examples/mcp-claude.json`, `examples/mcp-opencode.json`. Если каталог данных нестандартный — добавьте `--data-dir <путь>` к аргументам.
 
+### Скилл для агента (портируемый)
+
+`skills/streamdrop/SKILL.md` — портируемый скилл агента: он обучает агента правилам предметной области (инварианты, рабочие процессы, коды ошибок) поверх MCP-инструментов. Подключение:
+
+- **OpenCode:** скопируйте в `.opencode/skills/streamdrop/SKILL.md` либо добавьте `"skills": ["./skills"]` в `opencode.json`, чтобы OpenCode обнаружил весь каталог `skills/`.
+- **Claude Code:** скопируйте в `.claude/skills/streamdrop/SKILL.md`.
+- **Любой другой агент:** подключите `skills/streamdrop/SKILL.md` как документ-инструкцию.
+
 - Инструменты возвращают машинные коды ошибок (`source_unreachable`, `daemon_unreachable`, `validation_failed`, ...); для работы любого инструмента демон должен быть запущен.
 - MCP опционален: если вы не пользуетесь ИИ-агентами, просто игнорируйте подкоманду `mcp`. MCP-серверы никогда не запускаются сами — только по команде клиента MCP.
 
