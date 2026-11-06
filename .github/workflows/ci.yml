@@ -113,8 +113,8 @@ jobs:
       - name: Download release archives
         run: |
           mkdir -p staging
-          curl -fsSL -o staging/rclone.zip https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-windows-amd64.zip
-          curl -fsSL -o staging/curl.zip https://curl.se/windows/dl-8.23.0_8/curl-8.23.0_8-win64-mingw.zip
+          curl -fsSL -o staging/rclone-v1.68.2-windows-amd64.zip https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-windows-amd64.zip
+          curl -fsSL -o staging/curl-8.23.0_8-win64-mingw.zip https://curl.se/windows/dl-8.23.0_8/curl-8.23.0_8-win64-mingw.zip
 
       - name: Verify checksums
         run: go run ./cmd/depcheck -staging staging -os windows -arch amd64
