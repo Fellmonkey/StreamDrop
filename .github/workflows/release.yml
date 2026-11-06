@@ -94,25 +94,14 @@ jobs:
             flags="-s -w -H=windowsgui"
           fi
           version="${GITHUB_REF_NAME#v}"
-          go build -trimpath -ldflags "$flags -X streamdrop/internal/config.Version=$version" -o "streamdrop${ext}" ./cmd/streamdrop
+          out="streamdrop-${{ matrix.name }}${ext}"
+          go build -trimpath -ldflags "$flags -X streamdrop/internal/config.Version=$version" -o "${out}" ./cmd/streamdrop
 
-      - name: Package
-        run: |
-          set -euo pipefail
-          name="StreamDrop-${{ matrix.name }}"
-          mkdir -p "dist/${name}"
-          cp "streamdrop"* "dist/${name}/"
-          cp README.md "dist/${name}/"
-          cp -r examples "dist/${name}/examples"
-          if [ "${{ matrix.goos }}" = "windows" ] && [ -d deps ]; then
-            cp -r deps "dist/${name}/deps"
-          fi
-          (cd dist && zip -qr "${name}.zip" "${name}")
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
         with:
           name: StreamDrop-${{ matrix.name }}
-          path: dist/*.zip
+          path: streamdrop-${{ matrix.name }}*
           if-no-files-found: error
 
   publish:
@@ -125,5 +114,5 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*.zip
+          files: artifacts/*
           generate_release_notes: true

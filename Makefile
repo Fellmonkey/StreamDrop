@@ -51,16 +51,11 @@ depcheck:
 run: build
 	STREAMDROP_CONSOLE_LOG=1 ./$(BIN) --no-tray --no-browser
 
-# Portable archive layout: binary, docs, examples, downloaded components.
+# Portable layout: the single streamdrop.exe (components auto-download on
+# first run). Release CI uploads the executable itself per platform.
 package: build-windows
 	mkdir -p dist/StreamDrop
-	cp bin/streamdrop.exe dist/StreamDrop/
-	cp README.md README.ru.md dist/StreamDrop/
-	cp -r examples dist/StreamDrop/examples
-	cp -r deps dist/StreamDrop/deps 2>/dev/null || true
-	cd dist && rm -f StreamDrop-v1-windows-amd64.zip && \
-		(command -v zip >/dev/null && zip -qr StreamDrop-v1-windows-amd64.zip StreamDrop || \
-		 powershell -NoProfile -Command "Compress-Archive -Path StreamDrop -DestinationPath StreamDrop-v1-windows-amd64.zip -Force")
+	cp bin/streamdrop.exe dist/StreamDrop/streamdrop.exe
 
 clean:
 	rm -rf bin dist
