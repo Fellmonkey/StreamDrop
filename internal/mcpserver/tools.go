@@ -117,10 +117,8 @@ func okResult(v any) *mcp.CallToolResult {
 
 func failResult(code string, params map[string]any) *mcp.CallToolResult {
 	payload := map[string]any{"code": code}
-	if params != nil {
-		for k, v := range params {
-			payload[k] = v
-		}
+	for k, v := range params {
+		payload[k] = v
 	}
 	raw, _ := json.Marshal(payload)
 	return &mcp.CallToolResult{
@@ -252,9 +250,7 @@ func buildTools(a *api) []server.ServerTool {
 				}
 				req := transfer.CreateRequest{RemoteID: remoteID}
 				req.SourceURL = r.GetString("source_url", "")
-				for _, u := range r.GetStringSlice("urls", nil) {
-					req.URLs = append(req.URLs, u)
-				}
+				req.URLs = append(req.URLs, r.GetStringSlice("urls", nil)...)
 				req.RemotePath = r.GetString("remote_path", "")
 				req.Engine = r.GetString("engine", "")
 				req.AuthProfileID = r.GetString("auth_profile_id", "")
